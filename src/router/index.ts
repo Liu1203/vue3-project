@@ -9,18 +9,18 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/home',
     name: 'home',
-    component: () => import('@/views/HomeView.vue'),
+    component: () => import('@/views/home/HomeView.vue'),
     meta: { requiresAuth: true }, // 标记需要登录
   },
   {
     path: '/login',
     name: 'login',
-    component: () => import('@/views/LoginView.vue'),
+    component: () => import('@/views/auth/LoginView.vue'),
   },
   {
     path: '/article/:id',
     name: 'article',
-    component: () => import('@/views/ArticleView.vue'),
+    component: () => import('@/views/article/ArticleView.vue'),
     meta: { requiresAuth: true },
   }
 ]
