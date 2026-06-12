@@ -19,7 +19,7 @@
         </router-link>
         <nav class="hero-nav">
           <router-link to="/articles" class="nav-link">文章</router-link>
-          <router-link to="/categories" class="nav-link">分类</router-link>
+          <router-link to="/thoughts" class="nav-link">随想</router-link>
           <router-link to="/about" class="nav-link">关于</router-link>
           <template v-if="userStore.token">
             <n-avatar round :size="32" :src="userStore.userInfo?.avatar" class="user-avatar" />

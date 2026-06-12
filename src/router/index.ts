@@ -24,10 +24,10 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
   },
   {
-    path: '/categories',
-    name: 'categories',
-    component: () => import('@/views/article/CategoryView.vue'),
-    meta: { requiresAuth: true },
+    path: '/thoughts',
+    name: 'thoughts',
+    component: () => import('@/views/article/ThoughtsView.vue'),
+    meta: { requiresAuth: false },
   },
   {
     path: '/about',

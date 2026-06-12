@@ -47,3 +47,18 @@ export interface CreateCommentParams {
   content: string
   parentId?: number | null
 }
+
+// 灵感随想
+export interface Thought {
+  id: number
+  content: string
+  tags: string[]
+  createdAt: string
+}
+
+export interface PaginatedThoughts {
+  items: Thought[]
+  total: number
+  page: number
+  pageSize: number
+}
