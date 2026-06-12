@@ -10,6 +10,10 @@ export interface ArticleDetail {
   date: string
 }
 
+export function getArticles(): Promise<ArticleDetail[]> {
+  return get<ArticleDetail[]>('/api/articles')
+}
+
 export function getArticleById(id: number): Promise<ArticleDetail> {
   return get<ArticleDetail>(`/api/articles/${id}`)
 }

@@ -4,6 +4,14 @@ import type { ArticleDetail } from '@/api/article'
 import { articles } from '../data/articles'
 
 export const articleHandlers = [
+  http.get('/api/articles', () => {
+    return HttpResponse.json({
+      code: 200,
+      data: articles,
+      message: 'success'
+    } as ApiResponse<ArticleDetail[]>)
+  }),
+
   http.get('/api/articles/:id', ({ params }) => {
     const article = articles.find(a => a.id === Number(params.id))
     if (!article) {

@@ -10,7 +10,7 @@ const routes: RouteRecordRaw[] = [
     path: '/home',
     name: 'home',
     component: () => import('@/views/home/HomeView.vue'),
-    meta: { requiresAuth: true }, // 标记需要登录
+    meta: { requiresAuth: false },
   },
   {
     path: '/login',
