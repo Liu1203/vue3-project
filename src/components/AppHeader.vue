@@ -15,14 +15,19 @@
         <n-button text @click="toggleTheme">
           {{ isDark ? '☀️' : '🌙' }}
         </n-button>
-        <n-avatar
-          round
-          size="small"
-          :src="userStore.userInfo?.avatar || undefined"
-          class="user-avatar"
-        />
-        <n-button text type="info" @click="handleLogout">
-          退出
+        <template v-if="userStore.token">
+          <n-avatar
+            round
+            size="small"
+            :src="userStore.userInfo?.avatar || undefined"
+            class="user-avatar"
+          />
+          <n-button text type="info" @click="handleLogout">
+            退出
+          </n-button>
+        </template>
+        <n-button v-else text type="primary" @click="goLogin">
+          登录
         </n-button>
       </div>
     </div>
@@ -48,7 +53,11 @@ function toggleTheme() {
 function handleLogout() {
   userStore.logout()
   message.success('已退出登录')
-  router.push('/login')
+  router.push('/home')
+}
+
+function goLogin() {
+  router.push('/login?redirect=' + encodeURIComponent(router.currentRoute.value.fullPath))
 }
 </script>
 

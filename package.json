@@ -8,7 +8,13 @@
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "build-only": "vite build",
-    "type-check": "vue-tsc --build"
+    "type-check": "vue-tsc --build",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:mock-server": "npx tsx tests/api/mock-server.ts",
+    "test:api": "npx tsx tests/api/mock-server.ts & python -m pytest tests/api/ -v"
   },
   "dependencies": {
     "@types/markdown-it": "^14.1.2",
@@ -21,16 +27,21 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^10.4.0",
+    "@playwright/test": "^1.61.0",
     "@tsconfig/node24": "^24.0.4",
     "@types/node": "^24.12.2",
     "@vitejs/plugin-vue": "^6.0.6",
+    "@vue/test-utils": "^2.4.11",
     "@vue/tsconfig": "^0.9.1",
+    "jsdom": "^29.1.1",
     "msw": "^2.14.3",
     "npm-run-all2": "^8.0.4",
     "sass": "^1.99.0",
+    "tsx": "^4.22.4",
     "typescript": "~6.0.0",
     "vite": "^8.0.8",
     "vite-plugin-vue-devtools": "^8.1.1",
+    "vitest": "^4.1.9",
     "vue-tsc": "^3.2.6"
   },
   "engines": {

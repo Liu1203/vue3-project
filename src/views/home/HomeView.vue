@@ -23,6 +23,7 @@
           <router-link to="/about" class="nav-link">关于</router-link>
           <template v-if="userStore.token">
             <n-avatar round :size="32" :src="userStore.userInfo?.avatar" class="user-avatar" />
+            <n-button text class="nav-logout" @click="handleLogout">退出</n-button>
           </template>
           <template v-else>
             <n-button text class="nav-login" @click="router.push('/login')">登录</n-button>
@@ -145,6 +146,7 @@ import { NButton, NSpin, NAvatar } from 'naive-ui'
 import { useUserStore } from '@/stores/user'
 import { getArticles } from '@/api/article'
 import type { ArticleDetail } from '@/api/article'
+import { message } from '@/utils/message'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -152,6 +154,12 @@ const year = new Date().getFullYear()
 
 const articles = ref<ArticleDetail[]>([])
 const loading = ref(true)
+
+function handleLogout() {
+  userStore.logout()
+  message.success('已退出登录')
+  router.push('/home')
+}
 
 const techStack = [
   { name: 'Vue 3', color: '#42b883' },
@@ -254,6 +262,11 @@ $text-muted: rgba(255, 255, 255, 0.6);
 .nav-login {
   color: $text-muted !important;
   font-size: 14px;
+  &:hover { color: #fff !important; }
+}
+.nav-logout {
+  color: rgba(255, 255, 255, 0.6) !important;
+  font-size: 13px;
   &:hover { color: #fff !important; }
 }
 .user-avatar { cursor: pointer; margin-left: 4px; }

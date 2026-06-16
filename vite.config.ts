@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { fileURLToPath, URL } from 'node:url'
 
 import { defineConfig } from 'vite'
@@ -19,5 +20,9 @@ export default defineConfig({
     port: 3000,
     open: true,
     // proxy: { '/api': 'http://localhost:8080' }  // 开发环境使用 MSW mock，无需代理
+  },
+  test: {
+    environment: 'jsdom',
+    include: ['src/**/*.{test,spec}.{ts,tsx}'],
   },
 })

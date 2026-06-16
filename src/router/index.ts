@@ -21,13 +21,11 @@ const routes: RouteRecordRaw[] = [
     path: '/articles',
     name: 'articles',
     component: () => import('@/views/article/ArchiveView.vue'),
-    meta: { requiresAuth: true },
   },
   {
     path: '/thoughts',
     name: 'thoughts',
     component: () => import('@/views/article/ThoughtsView.vue'),
-    meta: { requiresAuth: false },
   },
   {
     path: '/about',
@@ -38,7 +36,6 @@ const routes: RouteRecordRaw[] = [
     path: '/article/:id',
     name: 'article',
     component: () => import('@/views/article/ArticleView.vue'),
-    meta: { requiresAuth: true },
   }
 ]
 
@@ -49,20 +46,12 @@ const router = createRouter({
 
 // 全局前置守卫
 router.beforeEach((to, from) => {
-  const token = localStorage.getItem('token')
-
   if (to.path === '/login') {
+    const token = localStorage.getItem('token')
     if (token) {
       return '/home'
     }
-    return true
   }
-
-  if (to.meta.requiresAuth && !token) {
-    return '/login'
-  }
-
-  return true
 })
 
 export default router

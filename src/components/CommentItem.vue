@@ -17,7 +17,7 @@
         </div>
         <div class="comment-content" v-html="renderedContent" />
         <div class="comment-actions">
-          <n-button text size="tiny" type="primary" @click="$emit('reply', comment.id, comment.author)">
+          <n-button v-if="isLoggedIn" text size="tiny" type="primary" @click="$emit('reply', comment.id, comment.author)">
             回复
           </n-button>
           <n-button
@@ -51,16 +51,6 @@
     </div>
 
     <div v-if="replyTargetId === comment.id" class="reply-form-inline">
-      <div class="form-row">
-        <n-input
-          v-if="!isLoggedIn"
-          v-model:value="inlineAuthor"
-          placeholder="输入昵称"
-          size="small"
-          class="name-input"
-          :maxlength="20"
-        />
-      </div>
       <div class="form-row">
         <n-input
           v-model:value="inlineContent"
@@ -113,7 +103,6 @@ const emit = defineEmits<{
   cancelReply: []
 }>()
 
-const inlineAuthor = ref('')
 const inlineContent = ref('')
 
 const md = new MarkdownIt({
@@ -142,15 +131,13 @@ const timeAgo = computed(() => {
 })
 
 const inlineCanSubmit = computed(() => {
-  const author = props.isLoggedIn ? props.loggedInName : inlineAuthor.value.trim()
-  return !!author && !!inlineContent.value.trim()
+  return !!inlineContent.value.trim()
 })
 
 function submitInlineReply() {
   if (!inlineCanSubmit.value) return
   const content = inlineContent.value.trim()
-  const author = props.isLoggedIn ? props.loggedInName : inlineAuthor.value.trim()
-  emit('submitReply', props.comment.id, content, author)
+  emit('submitReply', props.comment.id, content, props.loggedInName)
   inlineContent.value = ''
 }
 </script>

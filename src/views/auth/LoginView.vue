@@ -288,6 +288,11 @@ function refreshCaptcha() {
   drawCaptcha()
 }
 
+// 暴露验证码给 E2E 测试（开发环境）
+if (import.meta.env.DEV) {
+  window.__captchaText = captchaText
+}
+
 // 登录处理
 async function handleLogin() {
   // 表单校验
@@ -319,7 +324,8 @@ async function handleLogin() {
 
     userStore.setLoginData(result)
     message.success('登录成功')
-    router.push('/home')
+    const redirect = (router.currentRoute.value.query.redirect as string) || '/home'
+    router.push(redirect)
   } catch (error: any) {
     console.error(error)
     // 登录失败刷新验证码

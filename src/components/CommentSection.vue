@@ -9,18 +9,13 @@
     <n-spin v-if="loading" size="small" class="comment-loading" />
 
     <template v-else>
+      <!-- 未登录提示 -->
+      <div v-if="!isLoggedIn" class="comment-login-hint">
+        💬 请 <n-button text type="primary" @click="goLogin">登录</n-button> 后发表评论
+      </div>
+
       <!-- 顶部的评论输入框 -->
-      <div class="comment-form" :class="{ 'is-reply': !!replyTarget }">
-        <div class="form-row">
-          <n-input
-            v-if="!isLoggedIn"
-            v-model:value="authorInput"
-            placeholder="输入昵称"
-            size="small"
-            class="name-input"
-            :maxlength="20"
-          />
-        </div>
+      <div v-else class="comment-form" :class="{ 'is-reply': !!replyTarget }">
         <div class="form-row">
           <n-input
             ref="contentInputRef"
@@ -85,6 +80,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { NInput, NButton, NSpin } from 'naive-ui'
+import { useRouter } from 'vue-router'
 import type { Comment } from '@/types/api'
 import { getComments, createComment, deleteComment } from '@/api/comment'
 import { useUserStore } from '@/stores/user'
@@ -95,12 +91,12 @@ const props = defineProps<{
   articleId: number
 }>()
 
+const router = useRouter()
 const userStore = useUserStore()
 const comments = ref<Comment[]>([])
 const loading = ref(true)
 const submitting = ref(false)
 
-const authorInput = ref('')
 const contentInput = ref('')
 
 interface ReplyTarget {
@@ -128,16 +124,16 @@ const repliesMap = computed(() => {
 
 const loggedInName = computed(() => userStore.userInfo?.name ?? '')
 
-const currentAuthor = computed(() => {
-  if (isLoggedIn.value) return loggedInName.value
-  return authorInput.value.trim() || ''
-})
+const currentAuthor = computed(() => loggedInName.value)
 
 const canSubmit = computed(() => {
-  if (!currentAuthor.value) return false
   if (!contentInput.value.trim()) return false
   return true
 })
+
+function goLogin() {
+  router.push('/login?redirect=' + encodeURIComponent(router.currentRoute.value.fullPath))
+}
 
 function startReply(id: number, author: string) {
   replyTarget.value = { id, author }
@@ -281,6 +277,17 @@ $border-color: #e8e8ed;
     align-items: center;
     gap: 8px;
   }
+}
+
+.comment-login-hint {
+  text-align: center;
+  padding: 32px 0;
+  color: $text-muted;
+  font-size: 14px;
+  background: #f8f9fb;
+  border: 1px dashed $border-color;
+  border-radius: 12px;
+  margin-bottom: 24px;
 }
 
 .comment-empty {

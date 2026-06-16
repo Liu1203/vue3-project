@@ -6,8 +6,8 @@ import App from './App.vue'
 import router from './router'
 
 async function bootstrap() {
-  // ① 先在开发环境启动 MSW，确保所有插件就绪
-  if (import.meta.env.DEV) {
+  // ① 开发环境下，如果没有配置 API 地址，则启动 MSW Mock
+  if (import.meta.env.DEV && !import.meta.env.VITE_API_BASE_URL) {
     const { worker } = await import('./mocks/browser')
     await worker.start({
       onUnhandledRequest: 'bypass',
