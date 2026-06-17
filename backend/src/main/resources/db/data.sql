@@ -3,8 +3,8 @@
 MERGE INTO "user" (name, email, avatar, password, username) KEY(username)
 VALUES ('清清', 'admin@example.com', '', '$2a$10$qfyl6VYgl0rGov0Fp5oaGeDXwSasjmW/Ybr8EoYVXY//ZQL7lH0mC', 'admin');
 
--- 初始化文章数据
-INSERT INTO article (id, title, content, category, category_color, tags, date) VALUES
+-- 初始化文章数据（MERGE INTO 避免重复插入）
+MERGE INTO article (id, title, content, category, category_color, tags, date) KEY(id) VALUES
 (1, '用 Vite + Vue 3 从零搭建一个前端项目', '# 用 Vite + Vue 3 从零搭建一个前端项目
 
 本文介绍如何从零开始搭建一个基于 Vite + Vue 3 的前端项目，包含路由、状态管理、UI 框架等最佳实践。', 'Vue', '#42b883', '["Vite","Vue3","TypeScript"]', '2026-04-15'),
@@ -35,8 +35,8 @@ CSS Grid 是现代的二维布局系统，本文通过实战案例带你掌握 G
 
 OpenCode 是一个强大的 AI 编程助手，通过合理配置可以大幅提升开发效率。', '工具', '#e67e22', '["OpenCode","AI","CLI","配置"]', '2026-06-11');
 
--- 初始化评论数据
-INSERT INTO comment (id, article_id, author, author_avatar, content, parent_id, created_at) VALUES
+-- 初始化评论数据（MERGE INTO 避免重复插入）
+MERGE INTO comment (id, article_id, author, author_avatar, content, parent_id, created_at) KEY(id) VALUES
 (1, 1, '小明', NULL, '写得很详细，Vite 确实是目前最好的选择。想问一下你用的是 pnpm 还是 npm？', NULL, '2026-04-15 10:30:00'),
 (2, 1, '博主', 'https://07akioni.oss-cn-beijing.aliyuncs.com/07akioni.jpeg', '用的 pnpm，速度快很多，建议试试~', 1, '2026-04-15 11:00:00'),
 (3, 2, '小红', NULL, '泛型的 extends 约束那段写得特别好，终于理解了！', NULL, '2026-04-11 08:15:00'),
@@ -44,13 +44,8 @@ INSERT INTO comment (id, article_id, author, author_avatar, content, parent_id, 
 (5, 9, '博主', 'https://07akioni.oss-cn-beijing.aliyuncs.com/07akioni.jpeg', '是的，opencode.json 是项目级配置，只对当前项目生效。全局配置放在 ~/.config/opencode/opencode.json。', 4, '2026-06-11 16:00:00'),
 (6, 9, '阿强', NULL, '明白了，那项目配置和全局配置可以同时使用吗？', 4, '2026-06-11 16:30:00');
 
--- 重置自增 ID，避免与硬编码 ID 冲突（用户表已保留数据，不重置）
-ALTER TABLE article ALTER COLUMN id RESTART WITH 100;
-ALTER TABLE comment ALTER COLUMN id RESTART WITH 100;
-ALTER TABLE thought ALTER COLUMN id RESTART WITH 100;
-
--- 初始化随想数据
-INSERT INTO thought (id, content, tags, created_at) VALUES
+-- 初始化随想数据（MERGE INTO 避免重复插入）
+MERGE INTO thought (id, content, tags, created_at) KEY(id) VALUES
 (1, '今天试了一下 Vue 3 的 Suspense，在异步组件加载场景下体验很好，配合 `<Suspense>` + `<template #fallback>` 可以优雅处理 loading 状态。', '["Vue","前端"]', '2026-06-12 14:30:00'),
 (2, '最近在重读《深入理解 TypeScript》，对条件类型和 infer 关键字有了更深的理解。类型编程的本质其实就是类型层面的函数式编程。', '["TypeScript","读书"]', '2026-06-11 09:15:00'),
 (3, 'CSS Container Queries 终于普及了！以后再也不用 Media Queries 在不同组件上下文里猜尺寸了，容器查询才是组件化时代的正确方案。', '["CSS","前端"]', '2026-06-10 16:45:00'),

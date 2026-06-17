@@ -14,10 +14,53 @@
           <span class="comment-author">{{ comment.author }}</span>
           <span class="comment-time">{{ timeAgo }}</span>
         </div>
-        <div class="comment-content" v-html="renderedContent" />
-        <div class="comment-actions">
+        <div v-if="editing" class="comment-edit-form">
+          <n-input
+            v-model:value="editContent"
+            type="textarea"
+            :rows="3"
+            :autosize="{ minRows: 3, maxRows: 8 }"
+            :maxlength="1000"
+            show-count
+          />
+          <div class="edit-actions">
+            <div class="edit-actions-left">
+              <n-button text size="tiny" class="emoji-btn" @click="showEditEmoji = !showEditEmoji">
+                😊
+              </n-button>
+              <div v-if="showEditEmoji" class="emoji-picker-wrapper">
+                <EmojiPicker @select="onEditEmojiSelect" @close="showEditEmoji = false" />
+              </div>
+            </div>
+            <div class="edit-actions-right">
+              <n-button size="tiny" text @click="cancelEdit">取消</n-button>
+              <n-button size="tiny" type="primary" :loading="saving" @click="saveEdit">保存</n-button>
+            </div>
+          </div>
+        </div>
+        <div v-else class="comment-content" v-html="renderedContent" />
+        <div v-if="!editing" class="comment-actions">
+          <n-button
+            v-if="isLoggedIn"
+            text
+            size="tiny"
+            class="like-btn"
+            :class="{ liked: comment.likedByMe }"
+            @click="handleLike"
+          >
+            {{ comment.likedByMe ? '❤️' : '🤍' }} {{ comment.likeCount ?? 0 }}
+          </n-button>
           <n-button v-if="isLoggedIn" text size="tiny" type="primary" @click="$emit('reply', comment.id, comment.author)">
             回复
+          </n-button>
+          <n-button
+            v-if="isOwner"
+            text
+            size="tiny"
+            type="primary"
+            @click="startEdit"
+          >
+            编辑
           </n-button>
           <n-button
             v-if="isOwner"
@@ -44,6 +87,8 @@
         :logged-in-name="loggedInName"
         @reply="(id, author) => $emit('reply', id, author)"
         @delete="(id) => $emit('delete', id)"
+        @save="(id, content) => $emit('save', id, content)"
+        @toggle-like="(id, liked) => $emit('toggleLike', id, liked)"
         @submit-reply="(pid, content, author) => $emit('submitReply', pid, content, author)"
         @cancel-reply="$emit('cancelReply')"
       />
@@ -94,6 +139,7 @@
 import { ref, computed, nextTick } from 'vue'
 import { NButton, NInput } from 'naive-ui'
 import type { Comment } from '@/types/api'
+import { updateComment, likeComment, unlikeComment } from '@/api/comment'
 import MarkdownIt from 'markdown-it'
 import UserAvatar from '@/components/UserAvatar.vue'
 import EmojiPicker from '@/components/EmojiPicker.vue'
@@ -112,10 +158,33 @@ const emit = defineEmits<{
   delete: [commentId: number]
   submitReply: [parentId: number, content: string, author: string]
   cancelReply: []
+  save: [commentId: number, content: string]
+  toggleLike: [commentId: number, liked: boolean]
 }>()
 
 const inlineContent = ref('')
 const showInlineEmoji = ref(false)
+const editing = ref(false)
+const editContent = ref('')
+const saving = ref(false)
+const showEditEmoji = ref(false)
+
+function onEditEmojiSelect(emoji: string) {
+  const el = document.activeElement as HTMLTextAreaElement | null
+  if (el && el.tagName === 'TEXTAREA') {
+    const start = el.selectionStart
+    const end = el.selectionEnd
+    editContent.value = editContent.value.slice(0, start) + emoji + editContent.value.slice(end)
+    const pos = start + emoji.length
+    nextTick(() => {
+      el.focus()
+      el.setSelectionRange(pos, pos)
+    })
+  } else {
+    editContent.value += emoji
+  }
+  showEditEmoji.value = false
+}
 
 function onInlineEmojiSelect(emoji: string) {
   const el = document.activeElement as HTMLTextAreaElement | null
@@ -141,7 +210,49 @@ const md = new MarkdownIt({
   breaks: true,
 })
 
-const renderedContent = computed(() => md.render(props.comment.content))
+const renderedContent = computed(() => {
+  let html = md.render(props.comment.content)
+  html = html.replace(/@(\S+)/g, '<span class="mention">@$1</span>')
+  return html
+})
+
+function startEdit() {
+  editContent.value = props.comment.content
+  editing.value = true
+}
+
+function cancelEdit() {
+  editing.value = false
+  editContent.value = ''
+}
+
+async function saveEdit() {
+  if (!editContent.value.trim()) return
+  saving.value = true
+  try {
+    await updateComment(props.comment.id, editContent.value.trim())
+    emit('save', props.comment.id, editContent.value.trim())
+    editing.value = false
+  } catch {
+    // error handled by interceptor
+  } finally {
+    saving.value = false
+  }
+}
+
+async function handleLike() {
+  const wasLiked = props.comment.likedByMe
+  try {
+    if (wasLiked) {
+      await unlikeComment(props.comment.id)
+    } else {
+      await likeComment(props.comment.id)
+    }
+    emit('toggleLike', props.comment.id, !wasLiked)
+  } catch {
+    // error handled by interceptor
+  }
+}
 
 const isOwner = computed(() => {
   if (!props.isLoggedIn) return false
@@ -263,6 +374,53 @@ $border-color: var(--color-border);
   margin-top: 4px;
 }
 
+.comment-edit-form {
+  .edit-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+
+    &-left {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    &-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  }
+}
+
+.like-btn {
+  font-size: 13px;
+  &.liked {
+    color: #e25555;
+  }
+}
+
+.emoji-btn {
+  font-size: 16px;
+  line-height: 1;
+  padding: 2px;
+}
+
+.emoji-picker-wrapper {
+  position: absolute;
+  left: 0;
+  bottom: 100%;
+  z-index: 100;
+  margin-bottom: 4px;
+}
+
+:deep(.mention) {
+  color: #6366f1;
+  font-weight: 500;
+}
+
 .comment-replies {
   margin-top: 12px;
   margin-left: 44px;
@@ -304,18 +462,5 @@ $border-color: var(--color-border);
     }
   }
 
-  .emoji-btn {
-    font-size: 16px;
-    line-height: 1;
-    padding: 2px;
-  }
-
-  .emoji-picker-wrapper {
-    position: absolute;
-    left: 0;
-    bottom: 100%;
-    z-index: 100;
-    margin-bottom: 4px;
-  }
 }
 </style>

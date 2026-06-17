@@ -1,9 +1,6 @@
 -- H2 兼容 MySQL 模式下的建表语句
-DROP TABLE IF EXISTS comment;
-DROP TABLE IF EXISTS article;
-DROP TABLE IF EXISTS thought;
+-- 不再 DROP TABLE，使用 IF NOT EXISTS 保留已有数据
 
--- 用户表保留数据，不 DROP
 CREATE TABLE IF NOT EXISTS "user" (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(50) NOT NULL,
@@ -13,7 +10,7 @@ CREATE TABLE IF NOT EXISTS "user" (
     username VARCHAR(50) NOT NULL UNIQUE
 );
 
-CREATE TABLE article (
+CREATE TABLE IF NOT EXISTS article (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(200) NOT NULL,
     content TEXT NOT NULL,
@@ -23,7 +20,7 @@ CREATE TABLE article (
     date DATE NOT NULL
 );
 
-CREATE TABLE comment (
+CREATE TABLE IF NOT EXISTS comment (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     article_id BIGINT NOT NULL,
     author VARCHAR(50) NOT NULL,
@@ -35,7 +32,15 @@ CREATE TABLE comment (
     FOREIGN KEY (parent_id) REFERENCES comment(id)
 );
 
-CREATE TABLE thought (
+CREATE TABLE IF NOT EXISTS comment_like (
+    comment_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    PRIMARY KEY (comment_id, user_id),
+    FOREIGN KEY (comment_id) REFERENCES comment(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES "user"(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS thought (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     content TEXT NOT NULL,
     tags VARCHAR(500),

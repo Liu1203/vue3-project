@@ -48,6 +48,11 @@ export async function post<T>(url: string, data?: any, config?: AxiosRequestConf
   return response.data.data
 }
 
+export async function put<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+  const response = await http.put<ApiResponse<T>>(url, data, config)
+  return response.data.data
+}
+
 export async function del<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
   const response = await http.delete<ApiResponse<T>>(url, config)
   return response.data.data

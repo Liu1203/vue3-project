@@ -78,6 +78,8 @@
           :logged-in-name="loggedInName"
           @reply="startReply"
           @delete="handleDelete"
+          @save="handleSave"
+          @toggle-like="handleToggleLike"
           @submit-reply="handleReplySubmit"
           @cancel-reply="cancelReply"
         />
@@ -224,6 +226,22 @@ async function handleDelete(commentId: number) {
     await fetchComments()
   } catch {
     message.error('删除失败，请重试')
+  }
+}
+
+function handleSave(commentId: number, content: string) {
+  const c = comments.value.find(c => c.id === commentId)
+  if (c) {
+    c.content = content
+    message.success('编辑成功')
+  }
+}
+
+function handleToggleLike(commentId: number, liked: boolean) {
+  const c = comments.value.find(c => c.id === commentId)
+  if (c) {
+    c.likedByMe = liked
+    c.likeCount = (c.likeCount ?? 0) + (liked ? 1 : -1)
   }
 }
 

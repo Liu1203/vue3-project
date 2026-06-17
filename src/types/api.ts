@@ -45,6 +45,8 @@ export interface Comment {
   content: string
   parentId: number | null
   createdAt: string
+  likeCount?: number
+  likedByMe?: boolean
 }
 
 // 创建评论参数

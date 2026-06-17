@@ -1,6 +1,7 @@
 package com.example.blog.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.time.LocalDateTime;
@@ -16,6 +17,12 @@ public class Comment {
     private Long parentId;
     private LocalDateTime createdAt;
 
+    @TableField(exist = false)
+    private Integer likeCount;
+
+    @TableField(exist = false)
+    private Boolean likedByMe;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public Long getArticleId() { return articleId; }
@@ -30,4 +37,8 @@ public class Comment {
     public void setParentId(Long parentId) { this.parentId = parentId; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public Integer getLikeCount() { return likeCount; }
+    public void setLikeCount(Integer likeCount) { this.likeCount = likeCount; }
+    public Boolean getLikedByMe() { return likedByMe; }
+    public void setLikedByMe(Boolean likedByMe) { this.likedByMe = likedByMe; }
 }
