@@ -1,7 +1,10 @@
 import { post } from '@/utils/request'
-import type { LoginParams, LoginResult } from '@/types/api'
+import type { LoginParams, LoginResult, RegisterParams } from '@/types/api'
 
-// 这里直接调用 post 泛型函数，返回值会自动推导为 LoginResult
 export function login(data: LoginParams) {
   return post<LoginResult>('/api/auth/login', data)
+}
+
+export function register(data: RegisterParams) {
+  return post<LoginResult>('/api/auth/register', data)
 }

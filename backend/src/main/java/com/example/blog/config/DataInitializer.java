@@ -1,10 +1,13 @@
 package com.example.blog.config;
 
 import com.example.blog.entity.Article;
+import com.example.blog.entity.User;
 import com.example.blog.mapper.ArticleMapper;
+import com.example.blog.mapper.UserMapper;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StreamUtils;
 
@@ -15,13 +18,30 @@ import java.util.List;
 public class DataInitializer implements CommandLineRunner {
 
     private final ArticleMapper articleMapper;
+    private final UserMapper userMapper;
+    private final PasswordEncoder passwordEncoder;
 
-    public DataInitializer(ArticleMapper articleMapper) {
+    public DataInitializer(ArticleMapper articleMapper, UserMapper userMapper, PasswordEncoder passwordEncoder) {
         this.articleMapper = articleMapper;
+        this.userMapper = userMapper;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
     public void run(String... args) throws Exception {
+        migrateAdminPassword();
+        loadArticleContent();
+    }
+
+    private void migrateAdminPassword() {
+        User admin = userMapper.selectById(1L);
+        if (admin != null && !admin.getPassword().startsWith("$2a$")) {
+            admin.setPassword(passwordEncoder.encode(admin.getPassword()));
+            userMapper.updateById(admin);
+        }
+    }
+
+    private void loadArticleContent() throws Exception {
         List<Article> articles = articleMapper.selectList(null);
         if (articles.isEmpty()) return;
 

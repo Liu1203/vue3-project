@@ -18,6 +18,14 @@ export interface LoginParams {
   password: string
 }
 
+// 注册请求体
+export interface RegisterParams {
+  username: string
+  password: string
+  name: string
+  email: string
+}
+
 // 登录返回数据
 export interface LoginResult {
   token: string

@@ -1,6 +1,5 @@
 <template>
   <div class="login-page">
-    <!-- 粒子背景 -->
     <div class="particles">
       <span
         v-for="i in 12"
@@ -17,7 +16,6 @@
     </div>
 
     <div class="login-container">
-      <!-- 左侧品牌区 -->
       <div class="brand-panel">
         <div class="brand-content">
           <div class="brand-icon">
@@ -29,7 +27,6 @@
           <h1 class="brand-title">Vue3 Admin</h1>
           <p class="brand-desc">基于 Vue 3 + TypeScript + Naive UI<br/>的现代化管理系统</p>
         </div>
-        <!-- 装饰圆环 -->
         <div class="decor-ring ring-1" />
         <div class="decor-ring ring-2" />
         <div class="decor-dot dot-1" />
@@ -37,12 +34,27 @@
         <div class="decor-dot dot-3" />
       </div>
 
-      <!-- 右侧登录表单 -->
       <div class="form-panel">
         <div class="form-wrapper">
           <div class="form-header">
-            <h2>欢迎登录</h2>
-            <p>请输入您的账号信息</p>
+            <h2>{{ mode === 'login' ? '欢迎登录' : '创建账号' }}</h2>
+            <p>{{ mode === 'login' ? '请输入您的账号信息' : '注册一个新账号' }}</p>
+            <div class="mode-tabs">
+              <n-button
+                :type="mode === 'login' ? 'primary' : 'default'"
+                size="small"
+                @click="switchMode('login')"
+              >
+                登录
+              </n-button>
+              <n-button
+                :type="mode === 'register' ? 'primary' : 'default'"
+                size="small"
+                @click="switchMode('register')"
+              >
+                注册
+              </n-button>
+            </div>
           </div>
 
           <n-form
@@ -57,14 +69,50 @@
             <n-form-item path="username" label="用户名">
               <n-input
                 v-model:value="formData.username"
-                placeholder="请输入用户名 (admin)"
-                :input-props="{ autocomplete: 'username' }"
-                @keyup.enter="focusPassword"
+                :placeholder="mode === 'login' ? '请输入用户名 (admin)' : '请输入用户名'"
+                :input-props="{ autocomplete: mode === 'login' ? 'username' : 'new-username' }"
+                @keyup.enter="focusNext('password')"
               >
                 <template #prefix>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="8" r="4"/>
                     <path d="M4 20c0-4 4-7 8-7s8 3 8 7"/>
+                  </svg>
+                </template>
+              </n-input>
+            </n-form-item>
+
+            <!-- 昵称（仅注册） -->
+            <n-form-item v-if="mode === 'register'" path="name" label="昵称">
+              <n-input
+                ref="nameInputRef"
+                v-model:value="formData.name"
+                placeholder="请输入昵称"
+                :input-props="{ autocomplete: 'name' }"
+                @keyup.enter="focusNext('email')"
+              >
+                <template #prefix>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                </template>
+              </n-input>
+            </n-form-item>
+
+            <!-- 邮箱（仅注册） -->
+            <n-form-item v-if="mode === 'register'" path="email" label="邮箱">
+              <n-input
+                ref="emailInputRef"
+                v-model:value="formData.email"
+                placeholder="请输入邮箱"
+                :input-props="{ autocomplete: 'email' }"
+                @keyup.enter="focusNext('password')"
+              >
+                <template #prefix>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="M22 4L12 13 2 4"/>
                   </svg>
                 </template>
               </n-input>
@@ -77,9 +125,30 @@
                 v-model:value="formData.password"
                 type="password"
                 show-password-on="click"
-                placeholder="请输入密码 (123456)"
-                :input-props="{ autocomplete: 'current-password' }"
-                @keyup.enter="focusCaptcha"
+                :placeholder="mode === 'login' ? '请输入密码 (123456)' : '请输入密码（至少6位）'"
+                :input-props="{ autocomplete: mode === 'login' ? 'current-password' : 'new-password' }"
+                @keyup.enter="mode === 'login' ? focusNext('captcha') : focusNext('confirmPassword')"
+              >
+                <template #prefix>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2"/>
+                    <path d="M7 11V7a5 5 0 0110 0v4"/>
+                    <circle cx="12" cy="16" r="1"/>
+                  </svg>
+                </template>
+              </n-input>
+            </n-form-item>
+
+            <!-- 确认密码（仅注册） -->
+            <n-form-item v-if="mode === 'register'" path="confirmPassword" label="确认密码">
+              <n-input
+                ref="confirmPasswordInputRef"
+                v-model:value="formData.confirmPassword"
+                type="password"
+                show-password-on="click"
+                placeholder="请再次输入密码"
+                :input-props="{ autocomplete: 'new-password' }"
+                @keyup.enter="focusNext('captcha')"
               >
                 <template #prefix>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -100,7 +169,7 @@
                   placeholder="请输入验证码"
                   :maxlength="4"
                   style="flex: 1"
-                  @keyup.enter="handleLogin"
+                  @keyup.enter="handleSubmit"
                 />
                 <div class="captcha-img" @click="refreshCaptcha" title="点击刷新验证码">
                   <canvas ref="captchaCanvas" width="100" height="38" />
@@ -108,8 +177,8 @@
               </div>
             </n-form-item>
 
-            <!-- 记住密码 & 忘记密码 -->
-            <div class="form-extra">
+            <!-- 记住密码（仅登录） -->
+            <div v-if="mode === 'login'" class="form-extra">
               <n-checkbox v-model:checked="rememberPassword">
                 记住密码
               </n-checkbox>
@@ -118,30 +187,29 @@
               </n-button>
             </div>
 
-            <!-- 登录按钮 -->
+            <!-- 提交按钮 -->
             <n-button
               type="primary"
               block
               size="large"
               :loading="loading"
-              class="login-btn"
-              @click="handleLogin"
+              class="submit-btn"
+              @click="handleSubmit"
             >
-              {{ loading ? '登录中...' : '登 录' }}
+              {{ loading ? (mode === 'login' ? '登录中...' : '注册中...') : (mode === 'login' ? '登 录' : '注 册') }}
             </n-button>
           </n-form>
 
           <div class="form-footer">
-            <span>还没有账号？</span>
-            <n-button text type="primary" @click="handleRegister">
-              立即注册
+            <span>{{ mode === 'login' ? '还没有账号？' : '已有账号？' }}</span>
+            <n-button text type="primary" @click="switchMode(mode === 'login' ? 'register' : 'login')">
+              {{ mode === 'login' ? '立即注册' : '去登录' }}
             </n-button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 忘记密码弹窗 -->
     <n-modal v-model:show="showForgetModal" preset="dialog" title="重置密码" positive-text="确认" @positive-click="handleForgetSubmit">
       <p style="margin: 12px 0;">
         请输入注册时使用的邮箱，我们将发送重置链接。
@@ -152,7 +220,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import {
   NForm,
   NFormItem,
@@ -164,8 +232,8 @@ import {
   type FormRules,
   type InputInst,
 } from 'naive-ui'
-import { login } from '@/api/auth'
-import type { LoginParams } from '@/types/api'
+import { login, register } from '@/api/auth'
+import type { LoginParams, RegisterParams } from '@/types/api'
 import { message } from '@/utils/message'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
@@ -175,53 +243,111 @@ const userStore = useUserStore()
 const formRef = ref<FormInst | null>(null)
 const passwordInputRef = ref<InputInst | null>(null)
 const captchaInputRef = ref<InputInst | null>(null)
+const nameInputRef = ref<InputInst | null>(null)
+const emailInputRef = ref<InputInst | null>(null)
+const confirmPasswordInputRef = ref<InputInst | null>(null)
 const loading = ref(false)
 const rememberPassword = ref(false)
 const showForgetModal = ref(false)
 const forgetEmail = ref('')
+const mode = ref<'login' | 'register'>('login')
 
-// 登录表单数据
-const formData = reactive<LoginParams & { captcha: string }>({
+// 表单数据（包含登录和注册的字段）
+const formData = reactive<LoginParams & RegisterParams & { captcha: string; confirmPassword: string }>({
   username: '',
   password: '',
+  name: '',
+  email: '',
   captcha: '',
+  confirmPassword: '',
 })
 
 // 验证码相关
 const captchaCanvas = ref<HTMLCanvasElement | null>(null)
 const captchaText = ref('')
 
+// 焦点导航映射
+const focusMap = computed(() => ({
+  login: ['password', 'captcha'] as string[],
+  register: ['name', 'email', 'password', 'confirmPassword', 'captcha'] as string[],
+}))
+
+function focusNext(current: string) {
+  const fields = focusMap.value[mode.value]
+  const idx = fields.indexOf(current)
+  if (idx === -1 || idx >= fields.length - 1) return
+  const nextField = fields[idx + 1]
+  if (!nextField) return
+  const refMap: Record<string, any> = {
+    name: nameInputRef,
+    email: emailInputRef,
+    password: passwordInputRef,
+    confirmPassword: confirmPasswordInputRef,
+    captcha: captchaInputRef,
+  }
+  refMap[nextField]?.value?.focus()
+}
+
+function switchMode(m: 'login' | 'register') {
+  if (m === mode.value) return
+  mode.value = m
+  formRef.value?.restoreValidation()
+  formData.captcha = ''
+  refreshCaptcha()
+}
+
 // 表单校验规则
 const rules: FormRules = {
   username: {
     required: true,
     message: '请输入用户名',
-    trigger: [ 'blur', 'input' ],
+    trigger: ['blur', 'input'],
+  },
+  name: {
+    required: true,
+    message: '请输入昵称',
+    trigger: ['blur', 'input'],
+  },
+  email: {
+    required: true,
+    message: '请输入邮箱',
+    trigger: ['blur', 'input'],
+    validator: (_rule: any, value: string) => {
+      if (!value) return new Error('请输入邮箱')
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return new Error('邮箱格式不正确')
+      return true
+    },
   },
   password: {
     required: true,
     message: '请输入密码',
-    trigger: [ 'blur', 'input' ],
+    trigger: ['blur', 'input'],
+    validator: (_rule: any, value: string) => {
+      if (!value) return new Error('请输入密码')
+      if (mode.value === 'register' && value.length < 6) return new Error('密码至少6位')
+      return true
+    },
+  },
+  confirmPassword: {
+    required: true,
+    message: '请再次输入密码',
+    trigger: ['blur', 'input'],
+    validator: (_rule: any, value: string) => {
+      if (!value) return new Error('请再次输入密码')
+      if (value !== formData.password) return new Error('两次输入的密码不一致')
+      return true
+    },
   },
   captcha: {
     required: true,
     message: '请输入验证码',
-    trigger: [ 'blur', 'input' ],
-    validator: (_rule, value: string) => {
+    trigger: ['blur', 'input'],
+    validator: (_rule: any, value: string) => {
       if (!value) return new Error('请输入验证码')
       if (value.length !== 4) return new Error('验证码为4位')
       return true
     },
   },
-}
-
-// 聚焦密码框
-function focusPassword() {
-  passwordInputRef.value?.focus()
-}
-// 聚焦验证码框
-function focusCaptcha() {
-  captchaInputRef.value?.focus()
 }
 
 // 生成随机验证码文本
@@ -245,11 +371,9 @@ function drawCaptcha() {
   const h = canvas.height
   captchaText.value = generateCaptchaText()
 
-  // 背景
   ctx.fillStyle = '#f0f2f5'
   ctx.fillRect(0, 0, w, h)
 
-  // 干扰线
   for (let i = 0; i < 3; i++) {
     ctx.beginPath()
     ctx.moveTo(Math.random() * w, Math.random() * h)
@@ -259,7 +383,6 @@ function drawCaptcha() {
     ctx.stroke()
   }
 
-  // 干扰点
   for (let i = 0; i < 30; i++) {
     ctx.fillStyle = `rgba(${Math.random() * 180},${Math.random() * 180},${Math.random() * 200},0.6)`
     ctx.beginPath()
@@ -267,7 +390,6 @@ function drawCaptcha() {
     ctx.fill()
   }
 
-  // 文字
   const chars = captchaText.value.split('')
   chars.forEach((char, i) => {
     const x = 10 + i * 22 + Math.random() * 4
@@ -283,24 +405,19 @@ function drawCaptcha() {
   })
 }
 
-// 刷新验证码
 function refreshCaptcha() {
   drawCaptcha()
 }
 
-// 暴露验证码给 E2E 测试（开发环境）
 if (import.meta.env.DEV) {
   window.__captchaText = captchaText
 }
 
-// 登录处理
-async function handleLogin() {
-  // 表单校验
+async function handleSubmit() {
   await formRef.value?.validate().catch(() => {
     return false
   })
 
-  // 验证码校验（大小写不敏感）
   if (formData.captcha.toLowerCase() !== captchaText.value.toLowerCase()) {
     message.error('验证码错误，请重新输入')
     formData.captcha = ''
@@ -310,25 +427,12 @@ async function handleLogin() {
 
   loading.value = true
   try {
-    const { captcha, ...loginParams } = formData
-    const result = await login(loginParams)
-
-    // 记住密码
-    if (rememberPassword.value) {
-      localStorage.setItem('saved_username', formData.username)
-      localStorage.setItem('saved_password', formData.password)
+    if (mode.value === 'login') {
+      await handleLogin()
     } else {
-      localStorage.removeItem('saved_username')
-      localStorage.removeItem('saved_password')
+      await handleRegister()
     }
-
-    userStore.setLoginData(result)
-    message.success('登录成功')
-    const redirect = (router.currentRoute.value.query.redirect as string) || '/home'
-    router.push(redirect)
-  } catch (error: any) {
-    console.error(error)
-    // 登录失败刷新验证码
+  } catch {
     formData.captcha = ''
     refreshCaptcha()
   } finally {
@@ -336,7 +440,37 @@ async function handleLogin() {
   }
 }
 
-// 忘记密码
+async function handleLogin() {
+  const { captcha: _, confirmPassword: __, name: ___, email: ____, ...loginParams } = formData
+  const result = await login(loginParams)
+
+  if (rememberPassword.value) {
+    localStorage.setItem('saved_username', formData.username)
+    localStorage.setItem('saved_password', formData.password)
+  } else {
+    localStorage.removeItem('saved_username')
+    localStorage.removeItem('saved_password')
+  }
+
+  userStore.setLoginData(result)
+  message.success('登录成功')
+  const redirect = (router.currentRoute.value.query.redirect as string) || '/home'
+  router.push(redirect)
+}
+
+async function handleRegister() {
+  const registerParams: RegisterParams = {
+    username: formData.username,
+    password: formData.password,
+    name: formData.name,
+    email: formData.email,
+  }
+  const result = await register(registerParams)
+  userStore.setLoginData(result)
+  message.success('注册成功，已自动登录')
+  router.push('/home')
+}
+
 function handleForgetSubmit() {
   if (!forgetEmail.value) {
     message.warning('请输入邮箱地址')
@@ -346,14 +480,7 @@ function handleForgetSubmit() {
   forgetEmail.value = ''
 }
 
-// 注册
-function handleRegister() {
-  message.info('注册功能暂未开放，请联系管理员')
-}
-
-// 初始化
 onMounted(() => {
-  // 读取已保存的用户名密码
   const savedUser = localStorage.getItem('saved_username')
   const savedPass = localStorage.getItem('saved_password')
   if (savedUser && savedPass) {
@@ -361,14 +488,13 @@ onMounted(() => {
     formData.password = savedPass
     rememberPassword.value = true
   }
-  // 绘制验证码
   nextTick(() => drawCaptcha())
 })
 </script>
 
 <style scoped lang="scss">
 $primary-color: #6366f1;
-/* ===== 页面整体 ===== */
+
 .login-page {
   position: relative;
   height: 100vh;
@@ -379,7 +505,6 @@ $primary-color: #6366f1;
   overflow: hidden;
 }
 
-/* ===== 粒子动画 ===== */
 .particles {
   position: absolute;
   inset: 0;
@@ -394,23 +519,12 @@ $primary-color: #6366f1;
   animation: floatUp linear infinite;
 }
 @keyframes floatUp {
-  0% {
-    transform: translateY(0) scale(1);
-    opacity: 0;
-  }
-  10% {
-    opacity: 0.8;
-  }
-  90% {
-    opacity: 0.3;
-  }
-  100% {
-    transform: translateY(-110vh) scale(0.3);
-    opacity: 0;
-  }
+  0% { transform: translateY(0) scale(1); opacity: 0; }
+  10% { opacity: 0.8; }
+  90% { opacity: 0.3; }
+  100% { transform: translateY(-110vh) scale(0.3); opacity: 0; }
 }
 
-/* ===== 登录容器 ===== */
 .login-container {
   position: relative;
   z-index: 1;
@@ -423,17 +537,10 @@ $primary-color: #6366f1;
   animation: containerIn 0.8s cubic-bezier(0.22, 1, 0.36, 1);
 }
 @keyframes containerIn {
-  from {
-    opacity: 0;
-    transform: translateY(40px) scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  from { opacity: 0; transform: translateY(40px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* ===== 左侧品牌区 ===== */
 .brand-panel {
   flex: 1;
   background: linear-gradient(160deg, #4f46e5 0%, #7c3aed 40%, $primary-color 100%);
@@ -478,7 +585,6 @@ $primary-color: #6366f1;
   line-height: 1.8;
 }
 
-/* 装饰元素 */
 .decor-ring {
   position: absolute;
   border-radius: 50%;
@@ -518,7 +624,6 @@ $primary-color: #6366f1;
   50% { transform: translate(8px, -12px); opacity: 1; }
 }
 
-/* ===== 右侧表单区 ===== */
 .form-panel {
   flex: 1;
   background: #fff;
@@ -538,21 +643,32 @@ $primary-color: #6366f1;
 }
 .form-header {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 28px;
 }
 .form-header h2 {
-  margin: 0 0 8px;
+  margin: 0 0 4px;
   font-size: 24px;
   font-weight: 700;
   color: #1a1a2e;
 }
 .form-header p {
-  margin: 0;
+  margin: 0 0 16px;
   font-size: 14px;
   color: #888;
 }
 
-/* 验证码行 */
+/* 模式切换按钮 */
+.mode-tabs {
+  display: inline-flex;
+  gap: 8px;
+  background: #f0f2f5;
+  padding: 3px;
+  border-radius: 8px;
+}
+.mode-tabs :deep(.n-button) {
+  border-radius: 6px;
+}
+
 .captcha-row {
   display: flex;
   gap: 12px;
@@ -572,7 +688,6 @@ $primary-color: #6366f1;
   display: block;
 }
 
-/* 记住密码行 */
 .form-extra {
   display: flex;
   justify-content: space-between;
@@ -581,8 +696,7 @@ $primary-color: #6366f1;
   font-size: 13px;
 }
 
-/* 登录按钮 */
-.login-btn {
+.submit-btn {
   border-radius: 8px;
   font-size: 16px;
   font-weight: 600;
@@ -592,15 +706,14 @@ $primary-color: #6366f1;
   border: none !important;
   transition: transform 0.2s, box-shadow 0.3s !important;
 }
-.login-btn:hover {
+.submit-btn:hover {
   transform: translateY(-1px);
   box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4) !important;
 }
-.login-btn:active {
+.submit-btn:active {
   transform: translateY(0);
 }
 
-/* 底部链接 */
 .form-footer {
   text-align: center;
   margin-top: 20px;
@@ -608,7 +721,6 @@ $primary-color: #6366f1;
   color: #999;
 }
 
-/* ===== 响应式 ===== */
 @media (max-width: 768px) {
   .login-container {
     width: 90vw;
