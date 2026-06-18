@@ -14,7 +14,8 @@
       <n-spin v-if="!article" size="large" class="loading-spin" />
 
       <!-- 文章内容 -->
-      <article v-else class="article-card">
+      <div class="article-layout">
+        <article v-if="article" class="article-card">
         <!-- 文章头部 -->
         <header class="article-header">
           <span
@@ -47,6 +48,15 @@
         <!-- 分隔线 -->
         <div class="divider" />
 
+        <!-- Markdown 渲染区域 -->
+        <div class="article-body" v-html="renderedContent" />
+
+        <!-- 文章底部 -->
+        <div class="divider" />
+        <div class="article-footer">
+          <span>— END —</span>
+        </div>
+
         <!-- 互动按钮区 -->
         <div class="article-actions">
           <button
@@ -65,15 +75,15 @@
             <span class="action-icon">🔗</span>
             <span class="action-label">分享</span>
           </button>
-        </div>
-
-        <!-- Markdown 渲染区域 -->
-        <div class="article-body" v-html="renderedContent" />
-
-        <!-- 文章底部 -->
-        <div class="divider" />
-        <div class="article-footer">
-          <span>— END —</span>
+          <button
+            v-if="userStore.token"
+            class="action-btn"
+            :class="{ favorited: isFavorited }"
+            @click="handleFavorite"
+          >
+            <span class="action-icon">{{ isFavorited ? '⭐' : '☆' }}</span>
+            <span class="action-label">收藏</span>
+          </button>
         </div>
 
         <!-- 上一篇/下一篇 -->
@@ -96,38 +106,113 @@
           >
             <span class="nav-dir">下一篇 →</span>
             <span class="nav-title">{{ nextArticle.title }}</span>
-          </n-button>
+           </n-button>
         </div>
       </article>
 
-      <!-- 评论区 -->
-      <CommentSection v-if="article" :article-id="article.id" />
+      <aside v-if="article" class="article-toc-sidebar">
+        <ArticleToc :content="renderedContent" />
+      </aside>
+      </div>
+
+      <!-- 评论区 + 相关推荐 -->
+      <div class="article-bottom-section">
+        <CommentSection v-if="article" :article-id="article.id" />
+        <RelatedArticles v-if="article" :article-id="article.id" />
+      </div>
     </div>
+
+    <ImageLightbox
+      v-if="lightboxVisible"
+      :images="lightboxImages"
+      :initial-index="lightboxIndex"
+      @close="lightboxVisible = false"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { NTag, NSpin, NButton } from 'naive-ui'
 import MarkdownIt from 'markdown-it'
 import { getArticleById, getArticles, likeArticle, unlikeArticle, incrementViewCount } from '@/api/article'
+import { favoriteArticle, unfavoriteArticle, checkFavorited } from '@/api/favorite'
 import type { ArticleDetail } from '@/api/article'
 import AppHeader from '@/components/AppHeader.vue'
 import CommentSection from '@/components/CommentSection.vue'
+import ImageLightbox from '@/components/ImageLightbox.vue'
+import ArticleToc from '@/components/ArticleToc.vue'
+import RelatedArticles from '@/components/RelatedArticles.vue'
 import { message } from '@/utils/message'
+import { useUserStore } from '@/stores/user'
 
 const route = useRoute()
 const router = useRouter()
+const userStore = useUserStore()
 
 const article = ref<ArticleDetail | null>(null)
 const allArticles = ref<ArticleDetail[]>([])
+
+const langMap: Record<string, string> = {
+  js: 'JavaScript', ts: 'TypeScript', javascript: 'JavaScript',
+  typescript: 'TypeScript', py: 'Python', python: 'Python',
+  java: 'Java', go: 'Go', rust: 'Rust', rb: 'Ruby',
+  css: 'CSS', scss: 'SCSS', html: 'HTML', xml: 'XML',
+  json: 'JSON', yaml: 'YAML', yml: 'YAML', sql: 'SQL',
+  bash: 'Bash', sh: 'Shell', shell: 'Shell', powershell: 'PowerShell',
+  md: 'Markdown', markdown: 'Markdown', vue: 'Vue',
+  jsx: 'JSX', tsx: 'TSX', dockerfile: 'Dockerfile',
+}
 
 const md = new MarkdownIt({
   html: false,
   linkify: true,
   typographer: true,
 })
+
+md.renderer.rules.fence = (tokens, idx, options, _env, self) => {
+  const token = tokens[idx]!
+  const info = token.info ? token.info.trim() : ''
+  const langName = info.split(/\s+/)[0] || ''
+  const displayLang = langMap[langName.toLowerCase()] || langName.toUpperCase() || 'Code'
+  const codeContent = token.content
+
+  return `<div class="code-block-wrapper">` +
+    `<div class="code-block-header">` +
+      `<span class="code-lang">${displayLang}</span>` +
+      `<button class="code-copy-btn" data-code="${encodeURIComponent(codeContent)}">复制</button>` +
+    `</div>` +
+    `<pre><code class="language-${langName}">${md.utils.escapeHtml(codeContent)}</code></pre>` +
+  `</div>`
+}
+
+const defaultHeadingRender = md.renderer.rules.heading_open || function(tokens, idx, options, _env, self) {
+  return self.renderToken(tokens, idx, options)
+}
+
+md.renderer.rules.heading_open = (tokens, idx, options, _env, self) => {
+  const token = tokens[idx]!
+  const level = token.tag
+  const text = tokens[idx + 1]!.children
+    ?.filter(t => t.type === 'text')
+    .map(t => t.content)
+    .join('') || ''
+  const id = text.toLowerCase().replace(/\s+/g, '-').replace(/[^\w\u4e00-\u9fff-]/g, '')
+  return `<${level} id="${id}">`
+}
+
+function handleCodeCopy(event: Event) {
+  const target = event.target as HTMLElement
+  if (!target.classList.contains('code-copy-btn')) return
+  const code = decodeURIComponent(target.dataset.code || '')
+  navigator.clipboard.writeText(code).then(() => {
+    target.textContent = '已复制!'
+    setTimeout(() => { target.textContent = '复制' }, 2000)
+  }).catch(() => {
+    message.error('复制失败')
+  })
+}
 
 const renderedContent = computed(() => {
   if (!article.value) return ''
@@ -156,6 +241,39 @@ const nextArticle = computed(() => {
   return allArticles.value[currentIndex.value + 1]
 })
 
+const lightboxVisible = ref(false)
+const lightboxImages = ref<{ src: string; alt?: string }[]>([])
+const lightboxIndex = ref(0)
+const isFavorited = ref(false)
+
+function openLightbox(index: number) {
+  const body = document.querySelector('.article-body')
+  const imgs = body?.querySelectorAll('img')
+  if (!imgs) return
+  lightboxImages.value = Array.from(imgs).map(img => ({
+    src: img.getAttribute('src') || '',
+    alt: img.getAttribute('alt') || '',
+  }))
+  lightboxIndex.value = index
+  lightboxVisible.value = true
+}
+
+function bindImageClick() {
+  const body = document.querySelector('.article-body')
+  if (!body) return
+  body.querySelectorAll('img').forEach((img, idx) => {
+    if ((img as any).__lightboxBound) return
+    ;(img as any).__lightboxBound = true
+    ;(img as HTMLElement).style.cursor = 'pointer'
+    img.addEventListener('click', (e) => {
+      e.preventDefault()
+      openLightbox(idx)
+    })
+  })
+}
+
+watch(renderedContent, () => { nextTick(bindImageClick) })
+
 const progress = ref(0)
 let rafId = 0
 function updateProgress() {
@@ -166,9 +284,11 @@ function updateProgress() {
 }
 onMounted(() => {
   window.addEventListener('scroll', updateProgress, { passive: true })
+  document.querySelector('.article-body')?.addEventListener('click', handleCodeCopy)
 })
 onUnmounted(() => {
   window.removeEventListener('scroll', updateProgress)
+  document.querySelector('.article-body')?.removeEventListener('click', handleCodeCopy)
   cancelAnimationFrame(rafId)
 })
 
@@ -182,6 +302,8 @@ onMounted(async () => {
     article.value = articleData
     allArticles.value = articlesData
     incrementViewCount(id).catch(() => {})
+    nextTick(bindImageClick)
+    checkFavorited(id).then(v => { isFavorited.value = v }).catch(() => {})
   } catch {
     router.replace('/home')
   }
@@ -211,6 +333,21 @@ function handleShare() {
     message.error('复制失败')
   })
 }
+
+async function handleFavorite() {
+  if (!article.value) return
+  try {
+    if (isFavorited.value) {
+      await unfavoriteArticle(article.value.id)
+    } else {
+      await favoriteArticle(article.value.id)
+    }
+    isFavorited.value = !isFavorited.value
+    message.success(isFavorited.value ? '收藏成功' : '已取消收藏')
+  } catch {
+    message.error('操作失败')
+  }
+}
 </script>
 
 <style scoped lang="scss">
@@ -234,8 +371,27 @@ $max-width: 760px;
   padding: 32px 24px 80px;
 }
 
+.article-layout {
+  display: grid;
+  grid-template-columns: 1fr 240px;
+  gap: 24px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.article-toc-sidebar {
+  grid-column: 2;
+  position: sticky;
+  top: 84px;
+  align-self: start;
+
+  @media (max-width: 1200px) {
+    display: none;
+  }
+}
+
 .article-nav {
-  max-width: $max-width;
+  max-width: 1100px;
   margin: 0 auto 24px;
 
   .back-btn {
@@ -260,8 +416,10 @@ $max-width: 760px;
 
 // ===== 文章卡片 =====
 .article-card {
-  max-width: $max-width;
-  margin: 0 auto;
+  grid-column: 1;
+  justify-self: center;
+  width: 100%;
+  max-width: 760px;
   background: $bg-card;
   border-radius: $radius;
   padding: 48px 56px;
@@ -344,20 +502,20 @@ $max-width: 760px;
 .article-actions {
   display: flex;
   justify-content: center;
-  gap: 32px;
-  margin-bottom: 32px;
+  gap: 20px;
+  margin: 32px 0;
 
   .action-btn {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
-    border-radius: 20px;
+    gap: 4px;
+    padding: 6px 12px;
+    border-radius: 16px;
     background: $bg-page;
     border: 1px solid $border-color;
     cursor: pointer;
     transition: all 0.2s;
-    font-size: 14px;
+    font-size: 13px;
     color: $text-secondary;
 
     &:hover {
@@ -371,8 +529,14 @@ $max-width: 760px;
       background: rgba(#e25555, 0.05);
     }
 
+    &.favorited {
+      color: #f59e0b;
+      border-color: #f59e0b;
+      background: rgba(#f59e0b, 0.05);
+    }
+
     .action-icon {
-      font-size: 16px;
+      font-size: 13px;
     }
 
     .action-count {
@@ -380,7 +544,7 @@ $max-width: 760px;
     }
 
     .action-label {
-      font-size: 13px;
+      font-size: 12px;
     }
   }
 }
@@ -491,6 +655,52 @@ $max-width: 760px;
 
     p {
       margin: 0;
+    }
+  }
+
+  // 代码块包装
+  :deep(.code-block-wrapper) {
+    margin: 24px 0;
+    border-radius: 12px;
+    overflow: hidden;
+    background: $code-bg;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+
+    .code-block-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 16px;
+      background: rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+
+      .code-lang {
+        font-size: 12px;
+        color: #a6adc8;
+        font-weight: 500;
+      }
+
+      .code-copy-btn {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: #cdd6f4;
+        font-size: 12px;
+        padding: 2px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.15);
+          border-color: $primary;
+        }
+      }
+    }
+
+    pre {
+      margin: 0 !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
     }
   }
 
@@ -622,6 +832,12 @@ $max-width: 760px;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+}
+
+// ===== 底部区域 =====
+.article-bottom-section {
+  max-width: 760px;
+  margin: 0 auto;
 }
 
 // ===== 响应式 =====

@@ -9,6 +9,8 @@
         <router-link to="/home" class="nav-link" active-class="active">首页</router-link>
         <router-link to="/articles" class="nav-link" active-class="active">文章</router-link>
         <router-link to="/thoughts" class="nav-link" active-class="active">随想</router-link>
+        <router-link v-if="userStore.token" to="/favorites" class="nav-link" active-class="active">收藏</router-link>
+        <router-link v-if="userStore.token && userStore.userInfo?.role === 'admin'" to="/admin" class="nav-link" active-class="active">管理</router-link>
         <router-link to="/about" class="nav-link" active-class="active">关于</router-link>
       </nav>
       <div class="header-actions">
@@ -46,6 +48,8 @@
       <router-link to="/home" class="mobile-nav-link">首页</router-link>
       <router-link to="/articles" class="mobile-nav-link">文章</router-link>
       <router-link to="/thoughts" class="mobile-nav-link">随想</router-link>
+      <router-link v-if="userStore.token" to="/favorites" class="mobile-nav-link">收藏</router-link>
+      <router-link v-if="userStore.token && userStore.userInfo?.role === 'admin'" to="/admin" class="mobile-nav-link">管理</router-link>
       <router-link to="/about" class="mobile-nav-link">关于</router-link>
       <div class="mobile-nav-divider"></div>
       <template v-if="userStore.token">

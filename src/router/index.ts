@@ -33,6 +33,24 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/about/AboutView.vue'),
   },
   {
+    path: '/favorites',
+    name: 'favorites',
+    component: () => import('@/views/user/FavoritesView.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/admin',
+    name: 'admin',
+    component: () => import('@/views/admin/AdminDashboard.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/editor/:id?',
+    name: 'article-editor',
+    component: () => import('@/views/admin/ArticleEditor.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
     path: '/article/:id',
     name: 'article',
     component: () => import('@/views/article/ArticleView.vue'),
@@ -45,10 +63,26 @@ const router = createRouter({
 })
 
 // 全局前置守卫
-router.beforeEach((to, from) => {
+router.beforeEach((to) => {
   if (to.path === '/login') {
     const token = localStorage.getItem('token')
     if (token) {
+      return '/home'
+    }
+  }
+  if (to.meta.requiresAuth) {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      return '/login?redirect=' + encodeURIComponent(to.fullPath)
+    }
+  }
+  if (to.meta.requiresAdmin) {
+    try {
+      const userInfo = JSON.parse(localStorage.getItem('userInfo') || 'null')
+      if (!userInfo || userInfo.role !== 'admin') {
+        return '/home'
+      }
+    } catch {
       return '/home'
     }
   }

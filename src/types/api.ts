@@ -33,6 +33,7 @@ export interface LoginResult {
     id: number
     name: string
     avatar: string
+    role?: string
   }
 }
 

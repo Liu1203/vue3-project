@@ -31,7 +31,8 @@
 
           <n-card title="🔥 热门文章" :bordered="false" class="sidebar-card">
             <ul class="hot-list">
-              <li v-for="article in hotArticles" :key="article.id" class="hot-item">
+              <li v-for="(article, index) in hotArticles" :key="article.id" class="hot-item">
+                <span class="hot-rank" :class="{ top: index < 3 }">{{ index + 1 }}</span>
                 <a href="#" @click.prevent="router.push(`/article/${article.id}`)">{{ article.title }}</a>
               </li>
             </ul>
@@ -146,12 +147,13 @@ import {
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import UserAvatar from '@/components/UserAvatar.vue'
-import { getArticles } from '@/api/article'
+import { getArticles, getHotArticles } from '@/api/article'
 import type { ArticleDetail } from '@/api/article'
 
 const router = useRouter()
 const userStore = useUserStore()
 const articles = ref<ArticleDetail[]>([])
+const hotArticles = ref<ArticleDetail[]>([])
 const loading = ref(true)
 
 const searchQuery = ref('')
@@ -165,8 +167,6 @@ const categories = computed(() => {
   }
   return Object.entries(map).map(([name, count]) => ({ name, count }))
 })
-
-const hotArticles = computed(() => articles.value.slice(0, 8))
 
 const tagCloud = computed(() => {
   const map: Record<string, number> = {}
@@ -217,7 +217,12 @@ const hasActiveFilters = computed(() => searchQuery.value || selectedCategory.va
 
 onMounted(async () => {
   try {
-    articles.value = await getArticles()
+    const [articlesData, hotData] = await Promise.all([
+      getArticles(),
+      getHotArticles(8),
+    ])
+    articles.value = articlesData
+    hotArticles.value = hotData
   } catch {
     console.warn('获取文章列表失败')
   } finally {
@@ -419,11 +424,37 @@ $sidebar-right-width: 300px;
     }
 
     .hot-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       padding: 6px 0;
+
+      .hot-rank {
+        flex-shrink: 0;
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+        background: rgba($primary, 0.1);
+        color: $text-muted;
+        font-size: 12px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        &.top {
+          background: $primary;
+          color: #fff;
+        }
+      }
+
       a {
         color: $text-secondary;
         font-size: 14px;
         text-decoration: none;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
         &:hover { color: $primary; }
       }
     }

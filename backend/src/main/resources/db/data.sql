@@ -1,7 +1,7 @@
 -- 初始化管理员用户（密码: 123456, bcrypt 加密）
 -- MERGE INTO 避免重复插入，不影响已有用户
-MERGE INTO "user" (name, email, avatar, password, username) KEY(username)
-VALUES ('清清', 'admin@example.com', '', '$2a$10$qfyl6VYgl0rGov0Fp5oaGeDXwSasjmW/Ybr8EoYVXY//ZQL7lH0mC', 'admin');
+MERGE INTO "user" (name, email, avatar, password, username, role) KEY(username)
+VALUES ('清清', 'admin@example.com', '', '$2a$10$qfyl6VYgl0rGov0Fp5oaGeDXwSasjmW/Ybr8EoYVXY//ZQL7lH0mC', 'admin', 'admin');
 
 -- 初始化文章数据（MERGE INTO 避免重复插入）
 MERGE INTO article (id, title, content, category, category_color, tags, date, view_count, like_count) KEY(id) VALUES

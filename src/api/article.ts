@@ -21,6 +21,14 @@ export function getArticleById(id: number): Promise<ArticleDetail> {
   return get<ArticleDetail>(`/api/articles/${id}`)
 }
 
+export function getHotArticles(limit = 10): Promise<ArticleDetail[]> {
+  return get<ArticleDetail[]>('/api/articles/hot', { limit })
+}
+
+export function getRelatedArticles(id: number): Promise<ArticleDetail[]> {
+  return get<ArticleDetail[]>(`/api/articles/${id}/related`)
+}
+
 export function likeArticle(id: number): Promise<void> {
   return post<void>(`/api/articles/${id}/like`)
 }

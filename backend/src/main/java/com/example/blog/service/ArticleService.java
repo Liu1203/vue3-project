@@ -33,6 +33,43 @@ public class ArticleService {
         return article;
     }
 
+    public List<Article> getHotArticles(int limit) {
+        return articleMapper.selectList(
+                new LambdaQueryWrapper<Article>()
+                        .orderByDesc(Article::getViewCount)
+                        .last("LIMIT " + limit));
+    }
+
+    public List<Article> getRelatedArticles(Long id) {
+        Article article = articleMapper.selectById(id);
+        if (article == null) {
+            return List.of();
+        }
+        List<String> tags = article.getTagsList();
+        if (tags.isEmpty()) {
+            return articleMapper.selectList(
+                    new LambdaQueryWrapper<Article>()
+                            .ne(Article::getId, id)
+                            .orderByDesc(Article::getViewCount)
+                            .last("LIMIT 4"));
+        }
+        List<Article> all = articleMapper.selectList(
+                new LambdaQueryWrapper<Article>()
+                        .ne(Article::getId, id));
+        return all.stream()
+                .filter(a -> {
+                    List<String> aTags = a.getTagsList();
+                    return aTags.stream().anyMatch(tags::contains);
+                })
+                .sorted((a, b) -> {
+                    long aMatch = a.getTagsList().stream().filter(tags::contains).count();
+                    long bMatch = b.getTagsList().stream().filter(tags::contains).count();
+                    return Long.compare(bMatch, aMatch);
+                })
+                .limit(4)
+                .toList();
+    }
+
     public void incrementViewCount(Long id) {
         articleMapper.update(null,
                 new LambdaUpdateWrapper<Article>()

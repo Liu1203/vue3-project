@@ -29,6 +29,17 @@ public class ArticleController {
         return ApiResponse.success(article);
     }
 
+    @GetMapping("/hot")
+    public ApiResponse<List<Article>> getHotArticles(
+            @RequestParam(defaultValue = "10") int limit) {
+        return ApiResponse.success(articleService.getHotArticles(limit));
+    }
+
+    @GetMapping("/{id}/related")
+    public ApiResponse<List<Article>> getRelatedArticles(@PathVariable Long id) {
+        return ApiResponse.success(articleService.getRelatedArticles(id));
+    }
+
     @PostMapping("/{id}/view")
     public ApiResponse<Void> incrementViewCount(@PathVariable Long id) {
         articleService.incrementViewCount(id);

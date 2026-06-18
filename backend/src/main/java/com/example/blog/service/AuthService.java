@@ -32,7 +32,7 @@ public class AuthService {
         }
         String token = jwtUtil.generateToken(user.getId(), user.getUsername());
         LoginResult.UserInfo userInfo = new LoginResult.UserInfo(
-                user.getId(), user.getName(), user.getAvatar());
+                user.getId(), user.getName(), user.getAvatar(), user.getRole());
         return new LoginResult(token, userInfo);
     }
 
@@ -48,11 +48,12 @@ public class AuthService {
         user.setName(name);
         user.setEmail(email);
         user.setAvatar("");
+        user.setRole("user");
         userMapper.insert(user);
 
         String token = jwtUtil.generateToken(user.getId(), user.getUsername());
         LoginResult.UserInfo userInfo = new LoginResult.UserInfo(
-                user.getId(), user.getName(), user.getAvatar());
+                user.getId(), user.getName(), user.getAvatar(), user.getRole());
         return new LoginResult(token, userInfo);
     }
 }

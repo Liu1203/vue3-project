@@ -7,7 +7,8 @@ CREATE TABLE IF NOT EXISTS "user" (
     email VARCHAR(100),
     avatar VARCHAR(500),
     password VARCHAR(255) NOT NULL,
-    username VARCHAR(50) NOT NULL UNIQUE
+    username VARCHAR(50) NOT NULL UNIQUE,
+    role VARCHAR(20) DEFAULT 'user'
 );
 
 CREATE TABLE IF NOT EXISTS article (
@@ -25,6 +26,15 @@ CREATE TABLE IF NOT EXISTS article (
 CREATE TABLE IF NOT EXISTS article_like (
     article_id BIGINT NOT NULL,
     user_id BIGINT NOT NULL,
+    PRIMARY KEY (article_id, user_id),
+    FOREIGN KEY (article_id) REFERENCES article(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES "user"(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS article_favorite (
+    article_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (article_id, user_id),
     FOREIGN KEY (article_id) REFERENCES article(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES "user"(id) ON DELETE CASCADE
