@@ -5,9 +5,24 @@
     <main class="blog-main">
       <div class="blog-container">
         <aside class="blog-sidebar blog-sidebar--left">
+          <n-card title="🔍 搜索文章" :bordered="false" class="sidebar-card">
+            <n-input
+              v-model:value="searchQuery"
+              placeholder="输入关键词搜索..."
+              clearable
+              size="small"
+            />
+          </n-card>
+
           <n-card title="📂 文章分类" :bordered="false" class="sidebar-card">
             <ul class="category-list">
-              <li v-for="cat in categories" :key="cat.name" class="category-item">
+              <li
+                v-for="cat in categories"
+                :key="cat.name"
+                class="category-item"
+                :class="{ active: selectedCategory === cat.name }"
+                @click="selectCategory(cat.name)"
+              >
                 <span class="category-name">{{ cat.name }}</span>
                 <span class="category-count">{{ cat.count }}</span>
               </li>
@@ -24,6 +39,18 @@
         </aside>
 
         <div class="blog-content">
+          <div v-if="hasActiveFilters" class="filter-bar">
+            <span class="filter-label">
+              筛选中：{{ posts.length }} 篇文章
+            </span>
+            <n-button text size="small" type="primary" @click="clearFilters">清除筛选</n-button>
+          </div>
+
+          <div v-if="posts.length === 0 && !loading" class="empty-state">
+            <p>没有找到匹配的文章</p>
+            <n-button text type="primary" @click="clearFilters">清除筛选</n-button>
+          </div>
+
           <article
             v-for="post in posts"
             :key="post.id"
@@ -86,7 +113,9 @@
                 v-for="(count, tag) in tagCloud"
                 :key="tag"
                 class="tag-cloud-item"
+                :class="{ active: selectedTag === tag }"
                 :style="{ fontSize: 12 + count * 3 + 'px' }"
+                @click="selectTag(tag)"
               >
                 {{ tag }}
               </span>
@@ -112,6 +141,7 @@ import {
   NButton,
   NTag,
   NSpace,
+  NInput,
 } from 'naive-ui'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
@@ -124,6 +154,10 @@ const userStore = useUserStore()
 const articles = ref<ArticleDetail[]>([])
 const loading = ref(true)
 
+const searchQuery = ref('')
+const selectedCategory = ref<string | null>(null)
+const selectedTag = ref<string | null>(null)
+
 const categories = computed(() => {
   const map: Record<string, number> = {}
   for (const a of articles.value) {
@@ -134,8 +168,6 @@ const categories = computed(() => {
 
 const hotArticles = computed(() => articles.value.slice(0, 8))
 
-const posts = computed(() => articles.value)
-
 const tagCloud = computed(() => {
   const map: Record<string, number> = {}
   for (const a of articles.value) {
@@ -145,6 +177,43 @@ const tagCloud = computed(() => {
   }
   return map
 })
+
+const posts = computed(() => {
+  let result = articles.value
+  if (searchQuery.value.trim()) {
+    const q = searchQuery.value.trim().toLowerCase()
+    result = result.filter(a =>
+      a.title.toLowerCase().includes(q) ||
+      a.content.toLowerCase().includes(q) ||
+      a.tags.some(t => t.toLowerCase().includes(q))
+    )
+  }
+  if (selectedCategory.value) {
+    result = result.filter(a => a.category === selectedCategory.value)
+  }
+  if (selectedTag.value) {
+    result = result.filter(a => a.tags.includes(selectedTag.value!))
+  }
+  return result
+})
+
+function selectCategory(name: string) {
+  selectedCategory.value = selectedCategory.value === name ? null : name
+  selectedTag.value = null
+}
+
+function selectTag(tag: string) {
+  selectedTag.value = selectedTag.value === tag ? null : tag
+  selectedCategory.value = null
+}
+
+function clearFilters() {
+  searchQuery.value = ''
+  selectedCategory.value = null
+  selectedTag.value = null
+}
+
+const hasActiveFilters = computed(() => searchQuery.value || selectedCategory.value || selectedTag.value)
 
 onMounted(async () => {
   try {
@@ -214,6 +283,33 @@ $sidebar-right-width: 300px;
   max-width: 720px;
   margin: 0 auto;
   width: 100%;
+}
+
+.filter-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background: $bg-card;
+  border-radius: $radius;
+  margin-bottom: 16px;
+  border: 1px solid $border-color;
+
+  .filter-label {
+    font-size: 13px;
+    color: $text-secondary;
+  }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 48px 0;
+  color: $text-muted;
+  font-size: 14px;
+
+  p {
+    margin-bottom: 12px;
+  }
 }
 
 .post-card {
@@ -299,6 +395,17 @@ $sidebar-right-width: 300px;
       padding: 6px 0;
       font-size: 14px;
       border-bottom: 1px dashed #eee;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        color: $primary;
+      }
+
+      &.active {
+        .category-name { color: $primary; font-weight: 600; }
+        .category-count { background: $primary; color: #fff; }
+      }
 
       .category-name { color: $text-primary; }
       .category-count {
@@ -307,6 +414,7 @@ $sidebar-right-width: 300px;
         border-radius: 10px;
         padding: 0 8px;
         font-size: 12px;
+        transition: all 0.2s;
       }
     }
 
@@ -352,11 +460,18 @@ $sidebar-right-width: 300px;
   .tag-cloud-item {
     cursor: pointer;
     color: $primary;
-    transition: color 0.2s;
+    transition: all 0.2s;
+    padding: 2px 8px;
+    border-radius: 6px;
 
     &:hover {
       color: $primary-light;
-      text-decoration: underline;
+      background: rgba($primary, 0.08);
+    }
+
+    &.active {
+      color: #fff;
+      background: $primary;
     }
   }
 }

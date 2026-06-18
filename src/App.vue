@@ -7,6 +7,7 @@
         </transition>
       </router-view>
     </n-dialog-provider>
+    <BackToTop />
   </n-config-provider>
 </template>
 
@@ -14,6 +15,7 @@
 import { computed } from 'vue'
 import { NConfigProvider, NDialogProvider, darkTheme } from 'naive-ui'
 import { useTheme } from '@/composables/useTheme'
+import BackToTop from '@/components/BackToTop.vue'
 
 const { isDark } = useTheme()
 const theme = computed(() => isDark.value ? darkTheme : null)

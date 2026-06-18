@@ -592,7 +592,23 @@ $text-muted: rgba(255, 255, 255, 0.6);
 }
 
 .loading-state, .empty-state { text-align: center; padding: 48px 0; color: var(--color-text-muted); }
-.view-more { text-align: center; margin-top: 32px; }
+.view-more {
+  text-align: center;
+  margin-top: 32px;
+
+  .btn-ghost {
+    color: $primary !important;
+    border-color: rgba($primary, 0.3) !important;
+    height: 40px;
+    padding: 0 24px;
+    font-size: 14px;
+
+    &:hover {
+      background: rgba($primary, 0.06) !important;
+      border-color: $primary !important;
+    }
+  }
+}
 
 .footer {
   text-align: center;

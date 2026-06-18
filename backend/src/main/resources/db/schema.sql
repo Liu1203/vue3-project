@@ -17,7 +17,17 @@ CREATE TABLE IF NOT EXISTS article (
     category VARCHAR(50),
     category_color VARCHAR(20),
     tags VARCHAR(500),
-    date DATE NOT NULL
+    date DATE NOT NULL,
+    view_count BIGINT DEFAULT 0,
+    like_count BIGINT DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS article_like (
+    article_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    PRIMARY KEY (article_id, user_id),
+    FOREIGN KEY (article_id) REFERENCES article(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES "user"(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS comment (

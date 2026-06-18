@@ -4,36 +4,36 @@ MERGE INTO "user" (name, email, avatar, password, username) KEY(username)
 VALUES ('清清', 'admin@example.com', '', '$2a$10$qfyl6VYgl0rGov0Fp5oaGeDXwSasjmW/Ybr8EoYVXY//ZQL7lH0mC', 'admin');
 
 -- 初始化文章数据（MERGE INTO 避免重复插入）
-MERGE INTO article (id, title, content, category, category_color, tags, date) KEY(id) VALUES
+MERGE INTO article (id, title, content, category, category_color, tags, date, view_count, like_count) KEY(id) VALUES
 (1, '用 Vite + Vue 3 从零搭建一个前端项目', '# 用 Vite + Vue 3 从零搭建一个前端项目
 
-本文介绍如何从零开始搭建一个基于 Vite + Vue 3 的前端项目，包含路由、状态管理、UI 框架等最佳实践。', 'Vue', '#42b883', '["Vite","Vue3","TypeScript"]', '2026-04-15'),
+本文介绍如何从零开始搭建一个基于 Vite + Vue 3 的前端项目，包含路由、状态管理、UI 框架等最佳实践。', 'Vue', '#42b883', '["Vite","Vue3","TypeScript"]', '2026-04-15', 0, 0),
 (2, 'TypeScript 泛型完全指南（适合入门）', '# TypeScript 泛型完全指南
 
-泛型是 TypeScript 中最强大的特性之一，本文从基础到进阶全面讲解泛型的用法。', 'TypeScript', '#3178c6', '["TypeScript","泛型","前端基础"]', '2026-04-10'),
+泛型是 TypeScript 中最强大的特性之一，本文从基础到进阶全面讲解泛型的用法。', 'TypeScript', '#3178c6', '["TypeScript","泛型","前端基础"]', '2026-04-10', 0, 0),
 (3, '使用 MSW 实现前端的完美 Mock 方案', '# 使用 MSW 实现前端 Mock
 
-MSW (Mock Service Worker) 是一个优秀的 API Mock 工具，本文介绍如何在项目中使用 MSW。', '工具', '#e67e22', '["MSW","Mock","开发工具"]', '2026-04-05'),
+MSW (Mock Service Worker) 是一个优秀的 API Mock 工具，本文介绍如何在项目中使用 MSW。', '工具', '#e67e22', '["MSW","Mock","开发工具"]', '2026-04-05', 0, 0),
 (4, 'AI 对前端开发的影响与展望', '# AI 与前端开发
 
 AI 正在深刻改变前端开发的方方面面，从代码补全到自动化测试，AI 辅助编程已成为趋势。
 
-2026 年，AI 编程助手已经成为开发者日常工具链中不可或缺的一部分。无论是 Cursor、GitHub Copilot 还是 OpenCode，都在大幅提升开发效率。', '前沿', '#9b59b6', '["AI","前端开发","趋势"]', '2026-04-01'),
+2026 年，AI 编程助手已经成为开发者日常工具链中不可或缺的一部分。无论是 Cursor、GitHub Copilot 还是 OpenCode，都在大幅提升开发效率。', '前沿', '#9b59b6', '["AI","前端开发","趋势"]', '2026-04-01', 0, 0),
 (5, 'CSS Grid 布局实战指南', '# CSS Grid 布局
 
-CSS Grid 是现代的二维布局系统，本文通过实战案例带你掌握 Grid 布局的方方面面。', 'CSS', '#3498db', '["CSS","Grid","布局"]', '2026-03-25'),
+CSS Grid 是现代的二维布局系统，本文通过实战案例带你掌握 Grid 布局的方方面面。', 'CSS', '#3498db', '["CSS","Grid","布局"]', '2026-03-25', 0, 0),
 (6, '前端工程化最佳实践', '# 前端工程化
 
-工程化是现代前端开发的基石，从代码规范到自动化构建，每一个环节都值得重视。', '工程化', '#e74c3c', '["工程化","最佳实践","开发规范"]', '2026-03-20'),
+工程化是现代前端开发的基石，从代码规范到自动化构建，每一个环节都值得重视。', '工程化', '#e74c3c', '["工程化","最佳实践","开发规范"]', '2026-03-20', 0, 0),
 (7, '前端性能优化的那些事儿', '# 前端性能优化
 
-性能优化是用户体验的重要保障，本文总结了前端性能优化的常见手段和最佳实践。', '性能', '#1abc9c', '["性能","优化","用户体验"]', '2026-03-15'),
+性能优化是用户体验的重要保障，本文总结了前端性能优化的常见手段和最佳实践。', '性能', '#1abc9c', '["性能","优化","用户体验"]', '2026-03-15', 0, 0),
 (8, '前端安全指南：防止 XSS 和 CSRF 攻击', '# 前端安全指南
 
-安全问题不容忽视，XSS 和 CSRF 是最常见的前端安全威胁，本文介绍如何有效防御。', '安全', '#34495e', '["安全","XSS","CSRF"]', '2026-03-10'),
+安全问题不容忽视，XSS 和 CSRF 是最常见的前端安全威胁，本文介绍如何有效防御。', '安全', '#34495e', '["安全","XSS","CSRF"]', '2026-03-10', 0, 0),
 (9, 'OpenCode 配置完全指南：打造你的专属 AI 编程助手', '# OpenCode 配置指南
 
-OpenCode 是一个强大的 AI 编程助手，通过合理配置可以大幅提升开发效率。', '工具', '#e67e22', '["OpenCode","AI","CLI","配置"]', '2026-06-11');
+OpenCode 是一个强大的 AI 编程助手，通过合理配置可以大幅提升开发效率。', '工具', '#e67e22', '["OpenCode","AI","CLI","配置"]', '2026-06-11', 0, 0);
 
 -- 初始化评论数据（MERGE INTO 避免重复插入）
 MERGE INTO comment (id, article_id, author, author_avatar, content, parent_id, created_at) KEY(id) VALUES

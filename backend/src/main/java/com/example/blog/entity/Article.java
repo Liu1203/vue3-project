@@ -23,6 +23,8 @@ public class Article {
     private String categoryColor;
     private String tags;
     private LocalDate date;
+    private Long viewCount;
+    private Long likeCount;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -59,4 +61,8 @@ public class Article {
 
     public LocalDate getDate() { return date; }
     public void setDate(LocalDate date) { this.date = date; }
+    public Long getViewCount() { return viewCount; }
+    public void setViewCount(Long viewCount) { this.viewCount = viewCount; }
+    public Long getLikeCount() { return likeCount; }
+    public void setLikeCount(Long likeCount) { this.likeCount = likeCount; }
 }

@@ -66,24 +66,54 @@
       </div>
 
       <!-- 评论列表 -->
-      <div v-else class="comment-list">
-        <CommentItem
-          v-for="comment in topLevelComments"
-          :key="comment.id"
-          :comment="comment"
-          :replies="repliesMap[comment.id] || []"
-          :reply-target-id="replyTarget?.id ?? null"
-          :submitting="submitting"
-          :is-logged-in="isLoggedIn"
-          :logged-in-name="loggedInName"
-          @reply="startReply"
-          @delete="handleDelete"
-          @save="handleSave"
-          @toggle-like="handleToggleLike"
-          @submit-reply="handleReplySubmit"
-          @cancel-reply="cancelReply"
-        />
-      </div>
+      <template v-else>
+        <!-- 排序切换 -->
+        <div class="comment-sort-bar">
+          <span class="sort-label">排序：</span>
+          <n-button
+            text
+            size="small"
+            :type="sortBy === 'newest' ? 'primary' : 'default'"
+            @click="sortBy = 'newest'"
+          >
+            最新
+          </n-button>
+          <n-button
+            text
+            size="small"
+            :type="sortBy === 'hottest' ? 'primary' : 'default'"
+            @click="sortBy = 'hottest'"
+          >
+            最热
+          </n-button>
+        </div>
+
+        <div class="comment-list">
+          <CommentItem
+            v-for="comment in pagedComments"
+            :key="comment.id"
+            :comment="comment"
+            :replies="repliesMap[comment.id] || []"
+            :reply-target-id="replyTarget?.id ?? null"
+            :submitting="submitting"
+            :is-logged-in="isLoggedIn"
+            :logged-in-name="loggedInName"
+            @reply="startReply"
+            @delete="handleDelete"
+            @save="handleSave"
+            @toggle-like="handleToggleLike"
+            @submit-reply="handleReplySubmit"
+            @cancel-reply="cancelReply"
+          />
+        </div>
+
+        <!-- 加载更多 -->
+        <div v-if="hasMore" class="comment-load-more">
+          <n-button text type="primary" @click="loadMore">
+            加载更多评论 ({{ sortedComments.length - displayedCount }} 条)
+          </n-button>
+        </div>
+      </template>
     </template>
   </div>
 </template>
@@ -137,9 +167,31 @@ const replyTarget = ref<ReplyTarget | null>(null)
 
 const isLoggedIn = computed(() => !!userStore.userInfo)
 
+const sortBy = ref<'newest' | 'hottest'>('newest')
+const PAGE_SIZE = 10
+const displayedCount = ref(PAGE_SIZE)
+
 const topLevelComments = computed(() =>
   comments.value.filter(c => c.parentId === null)
 )
+
+const sortedComments = computed(() => {
+  const list = [...topLevelComments.value]
+  if (sortBy.value === 'newest') {
+    list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  } else {
+    list.sort((a, b) => (b.likeCount ?? 0) - (a.likeCount ?? 0))
+  }
+  return list
+})
+
+const pagedComments = computed(() => sortedComments.value.slice(0, displayedCount.value))
+
+const hasMore = computed(() => displayedCount.value < sortedComments.value.length)
+
+function loadMore() {
+  displayedCount.value += PAGE_SIZE
+}
 
 const repliesMap = computed(() => {
   const map: Record<number, Comment[]> = {}
@@ -395,6 +447,25 @@ $border-color: var(--color-border);
   padding: 40px 0;
   color: $text-muted;
   font-size: 14px;
+}
+
+.comment-sort-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 8px 0;
+
+  .sort-label {
+    font-size: 13px;
+    color: $text-muted;
+    margin-right: 4px;
+  }
+}
+
+.comment-load-more {
+  text-align: center;
+  padding: 16px 0;
 }
 
 .comment-list {

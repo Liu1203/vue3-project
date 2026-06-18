@@ -23,7 +23,10 @@
           >
             {{ article.category }}
           </span>
-          <span class="article-date">{{ article.date }}</span>
+          <div class="article-meta-right">
+            <span class="reading-time">📖 约 {{ readingTime }} 分钟</span>
+            <span class="article-date">{{ article.date }}</span>
+          </div>
         </header>
 
         <h1 class="article-title">{{ article.title }}</h1>
@@ -44,6 +47,26 @@
         <!-- 分隔线 -->
         <div class="divider" />
 
+        <!-- 互动按钮区 -->
+        <div class="article-actions">
+          <button
+            class="action-btn"
+            :class="{ liked: article.likedByMe }"
+            @click="handleLike"
+          >
+            <span class="action-icon">{{ article.likedByMe ? '❤️' : '🤍' }}</span>
+            <span class="action-count">{{ article.likeCount ?? 0 }}</span>
+          </button>
+          <div class="action-btn">
+            <span class="action-icon">👁️</span>
+            <span class="action-count">{{ article.viewCount ?? 0 }}</span>
+          </div>
+          <button class="action-btn" @click="handleShare">
+            <span class="action-icon">🔗</span>
+            <span class="action-label">分享</span>
+          </button>
+        </div>
+
         <!-- Markdown 渲染区域 -->
         <div class="article-body" v-html="renderedContent" />
 
@@ -51,6 +74,29 @@
         <div class="divider" />
         <div class="article-footer">
           <span>— END —</span>
+        </div>
+
+        <!-- 上一篇/下一篇 -->
+        <div v-if="prevArticle || nextArticle" class="article-nav-links">
+          <n-button
+            v-if="prevArticle"
+            text
+            class="nav-prev"
+            @click="router.push(`/article/${prevArticle.id}`)"
+          >
+            <span class="nav-dir">← 上一篇</span>
+            <span class="nav-title">{{ prevArticle.title }}</span>
+          </n-button>
+          <div v-else />
+          <n-button
+            v-if="nextArticle"
+            text
+            class="nav-next"
+            @click="router.push(`/article/${nextArticle.id}`)"
+          >
+            <span class="nav-dir">下一篇 →</span>
+            <span class="nav-title">{{ nextArticle.title }}</span>
+          </n-button>
         </div>
       </article>
 
@@ -63,29 +109,22 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { NCard, NTag, NSpin, NButton } from 'naive-ui'
+import { NTag, NSpin, NButton } from 'naive-ui'
 import MarkdownIt from 'markdown-it'
-import { getArticleById } from '@/api/article'
+import { getArticleById, getArticles, likeArticle, unlikeArticle, incrementViewCount } from '@/api/article'
+import type { ArticleDetail } from '@/api/article'
 import AppHeader from '@/components/AppHeader.vue'
 import CommentSection from '@/components/CommentSection.vue'
+import { message } from '@/utils/message'
 
 const route = useRoute()
 const router = useRouter()
 
-interface PostDetail {
-  id: number
-  title: string
-  content: string
-  category: string
-  categoryColor: string
-  tags: string[]
-  date: string
-}
-
-const article = ref<PostDetail | null>(null)
+const article = ref<ArticleDetail | null>(null)
+const allArticles = ref<ArticleDetail[]>([])
 
 const md = new MarkdownIt({
-  html: true,
+  html: false,
   linkify: true,
   typographer: true,
 })
@@ -95,24 +134,83 @@ const renderedContent = computed(() => {
   return md.render(article.value.content)
 })
 
+const readingTime = computed(() => {
+  if (!article.value) return 0
+  const text = article.value.content
+  const charCount = text.replace(/\s/g, '').length
+  return Math.max(1, Math.ceil(charCount / 400))
+})
+
+const currentIndex = computed(() => {
+  if (!article.value) return -1
+  return allArticles.value.findIndex(a => a.id === article.value!.id)
+})
+
+const prevArticle = computed(() => {
+  if (currentIndex.value <= 0) return null
+  return allArticles.value[currentIndex.value - 1]
+})
+
+const nextArticle = computed(() => {
+  if (currentIndex.value === -1 || currentIndex.value >= allArticles.value.length - 1) return null
+  return allArticles.value[currentIndex.value + 1]
+})
+
 const progress = ref(0)
+let rafId = 0
 function updateProgress() {
-  const docHeight = document.documentElement.scrollHeight - window.innerHeight
-  progress.value = docHeight > 0 ? Math.min(window.scrollY / docHeight * 100, 100) : 0
+  rafId = requestAnimationFrame(() => {
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight
+    progress.value = docHeight > 0 ? Math.min(window.scrollY / docHeight * 100, 100) : 0
+  })
 }
 onMounted(() => {
-  window.addEventListener('scroll', updateProgress)
+  window.addEventListener('scroll', updateProgress, { passive: true })
 })
-onUnmounted(() => window.removeEventListener('scroll', updateProgress))
+onUnmounted(() => {
+  window.removeEventListener('scroll', updateProgress)
+  cancelAnimationFrame(rafId)
+})
 
 onMounted(async () => {
   const id = Number(route.params.id)
   try {
-    article.value = await getArticleById(id)
+    const [articleData, articlesData] = await Promise.all([
+      getArticleById(id),
+      getArticles(),
+    ])
+    article.value = articleData
+    allArticles.value = articlesData
+    incrementViewCount(id).catch(() => {})
   } catch {
     router.replace('/home')
   }
 })
+
+async function handleLike() {
+  if (!article.value) return
+  const wasLiked = article.value.likedByMe
+  try {
+    if (wasLiked) {
+      await unlikeArticle(article.value.id)
+    } else {
+      await likeArticle(article.value.id)
+    }
+    article.value.likedByMe = !wasLiked
+    article.value.likeCount = (article.value.likeCount ?? 0) + (wasLiked ? -1 : 1)
+  } catch {
+    message.error('操作失败')
+  }
+}
+
+function handleShare() {
+  const url = window.location.href
+  navigator.clipboard.writeText(url).then(() => {
+    message.success('链接已复制到剪贴板')
+  }).catch(() => {
+    message.error('复制失败')
+  })
+}
 </script>
 
 <style scoped lang="scss">
@@ -189,6 +287,17 @@ $max-width: 760px;
     letter-spacing: 0.5px;
   }
 
+  .article-meta-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .reading-time {
+    font-size: 13px;
+    color: $text-muted;
+  }
+
   .article-date {
     font-size: 14px;
     color: $text-muted;
@@ -229,6 +338,51 @@ $max-width: 760px;
   height: 1px;
   background: linear-gradient(to right, transparent, $border-color, transparent);
   margin: 32px 0;
+}
+
+// ===== 互动按钮 =====
+.article-actions {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  margin-bottom: 32px;
+
+  .action-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    background: $bg-page;
+    border: 1px solid $border-color;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+    color: $text-secondary;
+
+    &:hover {
+      border-color: $primary;
+      background: rgba($primary, 0.05);
+    }
+
+    &.liked {
+      color: #e25555;
+      border-color: #e25555;
+      background: rgba(#e25555, 0.05);
+    }
+
+    .action-icon {
+      font-size: 16px;
+    }
+
+    .action-count {
+      font-weight: 500;
+    }
+
+    .action-label {
+      font-size: 13px;
+    }
+  }
 }
 
 // ===== 文章正文 =====
@@ -422,6 +576,52 @@ $max-width: 760px;
   font-size: 14px;
   letter-spacing: 2px;
   padding-top: 8px;
+}
+
+// ===== 上一篇/下一篇 =====
+.article-nav-links {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 32px;
+
+  .nav-prev, .nav-next {
+    flex: 1;
+    text-align: left;
+    padding: 16px;
+    background: $bg-page;
+    border-radius: 12px;
+    border: 1px solid $border-color;
+    transition: all 0.2s;
+    height: auto;
+    min-width: 0;
+
+    &:hover {
+      border-color: $primary;
+      background: rgba($primary, 0.03);
+    }
+  }
+
+  .nav-next {
+    text-align: right;
+  }
+
+  .nav-dir {
+    display: block;
+    font-size: 12px;
+    color: $text-muted;
+    margin-bottom: 4px;
+  }
+
+  .nav-title {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: $text-primary;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
 // ===== 响应式 =====
