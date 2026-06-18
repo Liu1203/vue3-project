@@ -39,9 +39,21 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/profile',
+    name: 'profile',
+    component: () => import('@/views/user/ProfileView.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/admin',
     name: 'admin',
     component: () => import('@/views/admin/AdminDashboard.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/users',
+    name: 'admin-users',
+    component: () => import('@/views/admin/UserManageView.vue'),
     meta: { requiresAuth: true, requiresAdmin: true },
   },
   {

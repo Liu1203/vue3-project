@@ -53,4 +53,39 @@ public class UserController {
         String avatarUrl = userService.updateAvatar(userId, file);
         return ApiResponse.success(avatarUrl, "头像更新成功");
     }
+
+    @PutMapping("/api/user/profile")
+    public ApiResponse<User> updateProfile(@RequestBody Map<String, String> body,
+                                            HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        if (userId == null) {
+            return ApiResponse.error(401, "未登录");
+        }
+        String name = body.get("name");
+        String email = body.get("email");
+        if (name == null && email == null) {
+            return ApiResponse.error(400, "至少需要提供 name 或 email");
+        }
+        User user = userService.updateProfile(userId, name, email);
+        return ApiResponse.success(user, "资料更新成功");
+    }
+
+    @PutMapping("/api/user/password")
+    public ApiResponse<Void> changePassword(@RequestBody Map<String, String> body,
+                                             HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        if (userId == null) {
+            return ApiResponse.error(401, "未登录");
+        }
+        String oldPassword = body.get("oldPassword");
+        String newPassword = body.get("newPassword");
+        if (oldPassword == null || newPassword == null) {
+            return ApiResponse.error(400, "旧密码和新密码不能为空");
+        }
+        if (newPassword.length() < 6) {
+            return ApiResponse.error(400, "新密码至少6位");
+        }
+        userService.changePassword(userId, oldPassword, newPassword);
+        return ApiResponse.success(null, "密码修改成功");
+    }
 }

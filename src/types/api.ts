@@ -4,12 +4,35 @@ export interface User {
   name: string
   email: string
   avatar: string
+  username: string
+  role: string
 }
+
 // 统一响应格式
 export interface ApiResponse<T = any> {
   code: number
   data: T
   message: string
+}
+
+// 分页结果
+export interface PageResult<T> {
+  items: T[]
+  total: number
+  page: number
+  pageSize: number
+}
+
+// 更新个人资料参数
+export interface UpdateProfileParams {
+  name?: string
+  email?: string
+}
+
+// 修改密码参数
+export interface ChangePasswordParams {
+  oldPassword: string
+  newPassword: string
 }
 
 // 新增：登录请求体

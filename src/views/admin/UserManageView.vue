@@ -1,65 +1,54 @@
 <template>
-  <div class="admin-page">
+  <div class="admin-users-page">
     <AppHeader />
 
     <main class="admin-main">
       <div class="admin-container">
         <div class="page-header">
           <div class="header-left">
-            <router-link to="/home" class="back-link">← 返回首页</router-link>
-            <div class="title-row">
-              <h1 class="page-title">📋 文章管理</h1>
-              <router-link to="/admin/users" class="sub-link">👥 用户管理</router-link>
-            </div>
+            <router-link to="/admin" class="back-link">← 返回管理后台</router-link>
+            <h1 class="page-title">👥 用户管理</h1>
           </div>
-          <n-button type="primary" @click="router.push('/admin/editor')">
-            + 新建文章
-          </n-button>
-        </div>
-
-        <div v-if="errorMsg" class="error-banner">
-          <p>{{ errorMsg }}</p>
-          <n-button type="primary" size="small" @click="router.push('/home')">返回首页</n-button>
         </div>
 
         <div class="stats-row">
           <div class="stat-card">
-              <span class="stat-value">{{ totalCount }}</span>
-            <span class="stat-label">文章总数</span>
+            <span class="stat-value">{{ totalCount }}</span>
+            <span class="stat-label">用户总数</span>
           </div>
           <div class="stat-card">
-            <span class="stat-value">{{ categoryCount }}</span>
-            <span class="stat-label">当前页分类数</span>
+            <span class="stat-value">{{ adminCount }}</span>
+            <span class="stat-label">管理员数</span>
           </div>
           <div class="stat-card">
-            <span class="stat-value">{{ tagCount }}</span>
-            <span class="stat-label">当前页标签数</span>
+            <span class="stat-value">{{ userCount }}</span>
+            <span class="stat-label">普通用户数</span>
           </div>
         </div>
 
         <div class="table-card">
           <n-data-table
             :columns="columns"
-            :data="articles"
+            :data="users"
             :bordered="false"
             :single-line="false"
             :remote="true"
             :pagination="pagination"
             :loading="loading"
-            :row-key="(row: ArticleDetail) => row.id"
+            :row-key="(row: User) => row.id"
             striped
             @update:page="handlePageChange"
             @update:page-size="handlePageSizeChange"
           />
-          <div v-if="articles.length === 0 && !loading" class="empty-state">
-            <n-empty description="暂无文章" />
+          <div v-if="users.length === 0 && !loading" class="empty-state">
+            <n-empty description="暂无用户" />
           </div>
         </div>
       </div>
     </main>
 
     <footer class="admin-footer">
-      <p>© {{ new Date().getFullYear() }} My Blog Admin</p>
+      <p>&copy; {{ new Date().getFullYear() }} My Blog Admin</p>
     </footer>
 
     <n-modal
@@ -67,32 +56,58 @@
       preset="dialog"
       type="error"
       title="确认删除"
-      :content="`确定要删除「${deleteTarget?.title}」吗？此操作不可撤销。`"
+      :content="`确定要删除用户「${deleteTarget?.name}」吗？此操作不可撤销。`"
       positive-text="删除"
       negative-text="取消"
       :loading="deleting"
       @positive-click="doDelete"
     />
+
+    <n-modal
+      v-model:show="showRoleModal"
+      preset="dialog"
+      title="修改角色"
+      :positive-text="'确认'"
+      negative-text="取消"
+      :loading="roleSaving"
+      @positive-click="doChangeRole"
+    >
+      <p style="margin: 12px 0 8px;">
+        为 <strong>{{ roleTarget?.name }}</strong> 选择角色：
+      </p>
+      <n-radio-group v-model:value="selectedRole">
+        <n-space>
+          <n-radio value="user">普通用户</n-radio>
+          <n-radio value="admin">管理员</n-radio>
+        </n-space>
+      </n-radio-group>
+    </n-modal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, h, reactive, onMounted } from 'vue'
+import { ref, computed, reactive, h, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { NButton, NDataTable, NEmpty, NModal, NTag } from 'naive-ui'
+import { NButton, NDataTable, NEmpty, NModal, NTag, NRadioGroup, NRadio, NSpace } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import AppHeader from '@/components/AppHeader.vue'
 import { message } from '@/utils/message'
-import type { ArticleDetail } from '@/api/article'
-import { getAdminArticles, deleteArticle } from '@/api/admin'
+import { getAdminUsers, updateUserRole, deleteUser } from '@/api/user'
+import { useUserStore } from '@/stores/user'
+import type { User } from '@/types/api'
 
 const router = useRouter()
-const articles = ref<ArticleDetail[]>([])
+const userStore = useUserStore()
+
+const users = ref<User[]>([])
 const loading = ref(true)
-const errorMsg = ref('')
 const showDeleteModal = ref(false)
-const deleteTarget = ref<ArticleDetail | null>(null)
+const deleteTarget = ref<User | null>(null)
 const deleting = ref(false)
+const showRoleModal = ref(false)
+const roleTarget = ref<User | null>(null)
+const selectedRole = ref('user')
+const roleSaving = ref(false)
 
 const pagination = reactive({
   pageSize: 10,
@@ -103,115 +118,121 @@ const pagination = reactive({
 
 const totalCount = ref(0)
 
-const categoryCount = computed(() => {
-  const cats = new Set(articles.value.map(a => a.category))
-  return cats.size
+const adminCount = computed(() => users.value.filter(u => u.role === 'admin').length)
+const userCount = computed(() => {
+  const currentTotal = adminCount.value + users.value.filter(u => u.role !== 'admin').length
+  return currentTotal - adminCount.value
 })
 
-const tagCount = computed(() => {
-  const tags = new Set(articles.value.flatMap(a => a.tags))
-  return tags.size
-})
+const currentUserId = computed(() => userStore.userInfo?.id)
 
-const columns: DataTableColumns<ArticleDetail> = [
+const columns: DataTableColumns<User> = [
   { title: 'ID', key: 'id', width: 60 },
   {
-    title: '标题',
-    key: 'title',
+    title: '头像',
+    key: 'avatar',
+    width: 60,
+    render(row) {
+      return h('div', { style: 'display: flex; align-items: center' }, [
+        row.avatar
+          ? h('img', { src: row.avatar, style: 'width: 32px; height: 32px; border-radius: 50%; object-fit: cover' })
+          : h('div', {
+            style: 'width: 32px; height: 32px; border-radius: 50%; background: #e0e0e0; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #888',
+          }, row.name.charAt(0)),
+      ])
+    },
+  },
+  {
+    title: '昵称',
+    key: 'name',
     ellipsis: { tooltip: true },
   },
   {
-    title: '分类',
-    key: 'category',
-    width: 120,
+    title: '用户名',
+    key: 'username',
+    width: 140,
+  },
+  {
+    title: '邮箱',
+    key: 'email',
+    width: 220,
+    ellipsis: { tooltip: true },
+  },
+  {
+    title: '角色',
+    key: 'role',
+    width: 100,
     render(row) {
       return h(NTag, {
         size: 'small',
         round: true,
         bordered: false,
-        color: { color: row.categoryColor + '20', textColor: row.categoryColor },
-      }, { default: () => row.category })
-    }
+        type: row.role === 'admin' ? 'error' : 'info',
+      }, { default: () => row.role === 'admin' ? '管理员' : '用户' })
+    },
   },
-  {
-    title: '标签',
-    key: 'tags',
-    width: 200,
-    render(row) {
-      return row.tags.slice(0, 3).map(tag =>
-        h(NTag, {
-          key: tag,
-          size: 'tiny',
-          bordered: false,
-          type: 'info',
-          style: 'margin-right: 4px',
-        }, { default: () => tag })
-      )
-    }
-  },
-  { title: '日期', key: 'date', width: 120 },
   {
     title: '操作',
     key: 'actions',
-    width: 160,
+    width: 180,
     fixed: 'right',
     render(row) {
+      const isSelf = row.id === currentUserId.value
       return h('div', { style: 'display: flex; gap: 8px' }, [
         h(NButton, {
           size: 'small',
           secondary: true,
-          type: 'primary',
-          onClick: () => router.push(`/admin/editor/${row.id}`),
-        }, { default: () => '编辑' }),
+          type: 'warning',
+          disabled: isSelf,
+          onClick: () => { roleTarget.value = row; selectedRole.value = row.role; showRoleModal.value = true },
+        }, { default: () => '角色' }),
         h(NButton, {
           size: 'small',
           secondary: true,
           type: 'error',
+          disabled: isSelf,
           onClick: () => { deleteTarget.value = row; showDeleteModal.value = true },
         }, { default: () => '删除' }),
       ])
-    }
+    },
   },
 ]
 
-onMounted(async () => {
-  await fetchArticles()
-})
+onMounted(() => fetchUsers())
 
-async function fetchArticles(page = 1, pageSize?: number) {
+async function fetchUsers(page = 1, pageSize?: number) {
   loading.value = true
   try {
     const ps = pageSize ?? pagination.pageSize
-    const result = await getAdminArticles(page, ps)
-    articles.value = result.items
+    const result = await getAdminUsers(page, ps)
+    users.value = result.items
     totalCount.value = result.total
     pagination.pageCount = Math.ceil(result.total / ps)
     pagination.pageSize = ps
-  } catch (e: any) {
-    console.error(e)
-    errorMsg.value = e?.message || '加载失败，请检查网络或登录状态'
+  } catch {
+    message.error('获取用户列表失败')
   } finally {
     loading.value = false
   }
 }
 
 function handlePageChange(page: number) {
-  fetchArticles(page)
+  fetchUsers(page)
 }
 
 function handlePageSizeChange(pageSize: number) {
-  fetchArticles(1, pageSize)
+  fetchUsers(1, pageSize)
 }
 
 async function doDelete() {
   if (!deleteTarget.value) return false
   deleting.value = true
   try {
-    await deleteArticle(deleteTarget.value.id)
+    await deleteUser(deleteTarget.value.id)
     message.success('删除成功')
     showDeleteModal.value = false
     deleteTarget.value = null
-    await fetchArticles()
+    await fetchUsers()
     return true
   } catch {
     message.error('删除失败')
@@ -220,12 +241,34 @@ async function doDelete() {
     deleting.value = false
   }
 }
+
+async function doChangeRole() {
+  if (!roleTarget.value) return false
+  if (selectedRole.value === roleTarget.value.role) {
+    showRoleModal.value = false
+    return false
+  }
+  roleSaving.value = true
+  try {
+    await updateUserRole(roleTarget.value.id, selectedRole.value)
+    message.success('角色已更新')
+    showRoleModal.value = false
+    roleTarget.value = null
+    await fetchUsers()
+    return true
+  } catch {
+    message.error('更新失败')
+    return false
+  } finally {
+    roleSaving.value = false
+  }
+}
 </script>
 
 <style scoped lang="scss">
 $primary: #6366f1;
 
-.admin-page {
+.admin-users-page {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -253,24 +296,6 @@ $primary: #6366f1;
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-
-.title-row {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-}
-
-.sub-link {
-  font-size: 14px;
-  color: $primary;
-  text-decoration: none;
-  font-weight: 500;
-  transition: opacity 0.2s;
-
-  &:hover {
-    opacity: 0.8;
-  }
 }
 
 .back-link {
@@ -327,35 +352,10 @@ $primary: #6366f1;
   padding-bottom: 24px;
 }
 
-.loading-state,
-.error-state,
 .empty-state {
   text-align: center;
   padding: 64px 0;
   color: var(--color-text-muted);
-}
-
-.error-banner {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  padding: 12px 16px;
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.error-banner p {
-  color: #ef4444;
-  font-size: 14px;
-  margin: 0;
-}
-
-.error-state p {
-  color: #ef4444;
-  font-size: 16px;
-  margin-bottom: 16px;
 }
 
 .admin-footer {
